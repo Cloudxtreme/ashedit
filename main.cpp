@@ -119,7 +119,6 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 	int layers = levelEditor->getLayers();
 
 	std::vector<bool> solids(layers);
-	//bool solids[layers];
 
 	if (layer == -1) {
 		if (draw_yellow_and_purple) {
@@ -186,7 +185,7 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 						al_color_name("magenta") :
 						al_color_name("white")),
 					tileX*General::tileSize*General::scale,
-					tileY*General::tileSize,
+					tileY*General::tileSize*General::scale,
 					General::tileSize*General::scale,
 					General::tileSize*General::scale,
 					dx,
@@ -766,9 +765,9 @@ int main(int argc, char **argv)
 				
 				int tileNumber = 0;
 				if(tileSheets.size()) {
-					levelEditor->setTile(tileY*(al_get_bitmap_width(tileSheets[0])/General::tileSize)+tileX);
+					levelEditor->setTile(tileY*(al_get_bitmap_width(tileSheets[0])/(General::tileSize*General::scale))+tileX);
 					levelEditor->setSheet(sheetCombo->getSelected());
-					tileNumber = tileY*(al_get_bitmap_width(tileSheets[0])/General::tileSize)+tileX;
+					tileNumber = tileY*(al_get_bitmap_width(tileSheets[0])/(General::tileSize*General::scale))+tileX;
 				}
 				
 				tgui::handleEvent(&event);
