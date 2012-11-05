@@ -63,7 +63,7 @@ static void tileDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int l
 		return;
 	
 	sheet = tileSheets[sheetCombo->getSelected()];
-	al_draw_bitmap_region(
+	al_draw_scaled_bitmap(
 		sheet,
 		ox,
 		oy,
@@ -71,36 +71,38 @@ static void tileDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int l
 		h,
 		dx,
 		dy,
+		w,
+		h,
 		0
 	);
 
 	int sel_x, sel_y;
 	tileSelector->getSelected(&sel_x, &sel_y);
 
-	int rx = dx + ((sel_x*General::tileSize) - ox);
-	int ry = dy + ((sel_y*General::tileSize) - oy);
+	int rx = dx + ((sel_x*General::tileSize*General::scale) - ox);
+	int ry = dy + ((sel_y*General::tileSize*General::scale) - oy);
 
 	al_draw_rectangle(
 		rx+0.5,
 		ry+0.5,
-		rx+General::tileSize-0.5,
-		ry+General::tileSize-0.5,
+		rx+General::tileSize*General::scale-0.5,
+		ry+General::tileSize*General::scale-0.5,
 		al_color_name("black"),
 		1
 	);
 	al_draw_rectangle(
 		rx+1.5,
 		ry+1.5,
-		rx+General::tileSize-1.5,
-		ry+General::tileSize-1.5,
+		rx+General::tileSize*General::scale-1.5,
+		ry+General::tileSize*General::scale-1.5,
 		al_color_name("yellow"),
 		1
 	);
 	al_draw_rectangle(
 		rx+2.5,
 		ry+2.5,
-		rx+General::tileSize-2.5,
-		ry+General::tileSize-2.5,
+		rx+General::tileSize*General::scale-2.5,
+		ry+General::tileSize*General::scale-2.5,
 		al_color_name("black"),
 		1
 	);
@@ -108,12 +110,12 @@ static void tileDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int l
 
 static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int layer)
 {
-	int xx = dx - (ox % General::tileSize);
-	int yy = dy - (oy % General::tileSize);
-	int tx = ox / General::tileSize;
-	int ty = oy / General::tileSize;
-	int wt = w / General::tileSize+2;
-	int ht = h / General::tileSize+2;
+	int xx = dx - (ox % (General::tileSize*General::scale));
+	int yy = dy - (oy % (General::tileSize*General::scale));
+	int tx = ox / (General::tileSize*General::scale);
+	int ty = oy / (General::tileSize*General::scale);
+	int wt = w / (General::tileSize*General::scale)+2;
+	int ht = h / (General::tileSize*General::scale)+2;
 	int layers = levelEditor->getLayers();
 
 	std::vector<bool> solids(layers);
@@ -122,14 +124,22 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 	if (layer == -1) {
 		if (draw_yellow_and_purple) {
 			al_draw_filled_rectangle(
-				dx, dy, dx+w, dy+h, al_color_name("magenta")
+				dx,
+				dy,
+				dx+w*General::scale,
+				dy+h*General::scale,
+				al_color_name("magenta")
 			);
 		}
-		int maxx = MIN(w, levelEditor->getWidth()*General::tileSize-ox);
-		int maxy = MIN(h, levelEditor->getHeight()*General::tileSize-oy);
+		int maxx = MIN(w, levelEditor->getWidth()*(General::tileSize*General::scale)-ox);
+		int maxy = MIN(h, levelEditor->getHeight()*(General::tileSize*General::scale)-oy);
 		if (draw_yellow_and_purple) {
 			al_draw_filled_rectangle(
-				dx, dy, dx+maxx, dy+maxy, al_color_name("yellow")
+				dx,
+				dy,
+				dx+maxx*General::scale,
+				dy+maxy*General::scale,
+				al_color_name("yellow")
 			);
 		}
 	}
@@ -154,9 +164,9 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 			for (int l = lstart; l < lend; l++) {
 				int tile, sheet;
 				bool tint;
-                bool solids_tmp = solids[l];
+				bool solids_tmp = solids[l];
 				levelEditor->getTile(tx+x, ty+y, l, &tile, &sheet, &solids_tmp, &tint);
-                solids[l] = solids_tmp;
+				solids[l] = solids_tmp;
 				if (tile < 0 || sheet < 0) {
 					continue;
 				}
@@ -167,43 +177,60 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 				if (levelEditor->isVisible(l) == false)
 					continue;
 				ALLEGRO_BITMAP *bmp = tileSheets[sheet];
-				int widthInTiles = al_get_bitmap_width(bmp) / General::tileSize;
+				int widthInTiles = al_get_bitmap_width(bmp) / (General::tileSize*General::scale);
 				int tileX = tile % widthInTiles;
 				int tileY = tile / widthInTiles;
-				al_draw_tinted_bitmap_region(
+				al_draw_tinted_scaled_bitmap(
 					bmp,
 					(tint ?
 						al_color_name("magenta") :
 						al_color_name("white")),
-					tileX*General::tileSize,
+					tileX*General::tileSize*General::scale,
 					tileY*General::tileSize,
-					General::tileSize,
-					General::tileSize,
-					dx, dy,
+					General::tileSize*General::scale,
+					General::tileSize*General::scale,
+					dx,
+					dy,
+					General::tileSize*General::scale,
+					General::tileSize*General::scale,
 					0
 				);
 			}
 			if (solids[layerCombo->getSelected()]) {
-				al_draw_line(dx, dy, dx+General::tileSize, dy+General::tileSize, al_color_name("yellow"), 2);
-				al_draw_line(dx, dy+General::tileSize, dx+General::tileSize, dy, al_color_name("yellow"), 2);
+				al_draw_line(
+					dx,
+					dy,
+					dx+General::tileSize*General::scale,
+					dy+General::tileSize*General::scale,
+					al_color_name("yellow"), 2);
+				al_draw_line(
+					dx,
+					dy+General::tileSize*General::scale,
+					dx+General::tileSize*General::scale,
+					dy,
+					al_color_name("yellow"),
+					2
+				);
 			}
-			dx += General::tileSize;
+			dx += (General::tileSize*General::scale);
 		}
-		dy += General::tileSize;
+		dy += (General::tileSize*General::scale);
 	}
 	
 	if (mouse_x > -1 && mouse_y > -1) {
-		int xx = mouse_x - (mouse_x % General::tileSize);
-		int yy = mouse_y - (mouse_y % General::tileSize);
+		int xx = mouse_x - (mouse_x % (General::tileSize*General::scale));
+		int yy = mouse_y - (mouse_y % (General::tileSize*General::scale));
 		xx -= ox;
 		yy -= oy;
 		int abs_x, abs_y;
 		determineAbsolutePosition(levelEditor, &abs_x, &abs_y);
 		xx += abs_x;
 		yy += abs_y;
-		al_draw_rectangle(xx, yy,
-			xx + General::tileSize,
-			yy + General::tileSize,
+		al_draw_rectangle(
+			xx,
+			yy,
+			xx + (General::tileSize*General::scale),
+			yy + (General::tileSize*General::scale),
 			al_map_rgba(0, 0, 0, 128), 2.0);
 	}
 }
@@ -326,9 +353,29 @@ void loadTileSheets(const char *path)
 	
 	sheetCombo->clearValues();
 	for(unsigned int i = 0; i < items.size(); i++) {
-		ALLEGRO_BITMAP *bmp = al_load_bitmap(al_path_cstr(items[i], ALLEGRO_NATIVE_PATH_SEP));
-		if (!bmp)
+		ALLEGRO_BITMAP *tmp = al_load_bitmap(al_path_cstr(items[i], ALLEGRO_NATIVE_PATH_SEP));
+		if (!tmp)
 			break;
+		ALLEGRO_BITMAP *bmp = al_create_bitmap(
+			al_get_bitmap_width(tmp)*General::scale,
+			al_get_bitmap_height(tmp)*General::scale
+		);
+		ALLEGRO_STATE st;
+		al_store_state(&st, ALLEGRO_STATE_TARGET_BITMAP | ALLEGRO_STATE_BLENDER);
+		al_set_target_bitmap(bmp);
+		al_set_blender(ALLEGRO_ADD, ALLEGRO_ONE, ALLEGRO_ZERO);
+		al_draw_scaled_bitmap(
+			tmp,
+			0, 0,
+			al_get_bitmap_width(tmp),
+			al_get_bitmap_height(tmp),
+			0, 0,
+			al_get_bitmap_width(bmp),
+			al_get_bitmap_height(bmp),
+			0
+		);
+		al_restore_state(&st);
+		al_destroy_bitmap(tmp);
 		tileSheets.push_back(bmp);
 		//fprintf(stderr, "loaded tilesheet: %s\n", al_path_cstr(items[i], ALLEGRO_NATIVE_PATH_SEP));
 		al_destroy_path(items[i]);
@@ -437,7 +484,7 @@ int main(int argc, char **argv)
 	);
 	tileSelector = new A_Tileselector(tileDrawCallback);
 	tileScrollpane->addScrollable(tileSelector);
-	if(tileSheets.size()) {
+	if (tileSheets.size()) {
 		tileScrollpane->setScrollSize(
 			al_get_bitmap_width(tileSheets[0]),
 			al_get_bitmap_height(tileSheets[0])
@@ -445,7 +492,10 @@ int main(int argc, char **argv)
 	}
 	levelEditor = new A_Leveleditor(levelDrawCallback, General::startLayers, tileSelector);
 	levelScrollpane->addScrollable(levelEditor);
-	levelScrollpane->setScrollSize(levelEditor->getWidth()*General::tileSize, levelEditor->getHeight()*General::tileSize);
+	levelScrollpane->setScrollSize(
+		levelEditor->getWidth()*(General::tileSize*General::scale),
+		levelEditor->getHeight()*(General::tileSize*General::scale)
+	);
 
 	A_Label *statusLabel = new A_Label("Status", al_color_name("black"));
 
@@ -689,7 +739,7 @@ int main(int argc, char **argv)
 				if (event.type == ALLEGRO_EVENT_MOUSE_AXES) {
 					mouse_x = mouse_y = -1;
 					levelX = levelY = -1;
-					if(pointOnWidget(levelEditor, event.mouse.x, event.mouse.y)) {
+					if (pointOnWidget(levelEditor, event.mouse.x, event.mouse.y)) {
 						int mx = event.mouse.x;
 						int my = event.mouse.y;
 						mx += levelScrollpane->getOffsetX();
@@ -726,7 +776,7 @@ int main(int argc, char **argv)
 				std::stringstream ss;
 				if (levelEditor->getRecording())
 					ss << "(Recording) ";
-				ss << levelEditor->getTool() << " -- Level (" << levelX << "," << levelY << ") Tile (" << tileNumber << "," << tileX << "," << tileY << ") Pixel (" << mouse_x << "," << mouse_y << ")";
+				ss << levelEditor->getTool() << " -- Level (" << (levelX/General::scale) << "," << (levelY/General::scale) << ") Tile (" << tileNumber << "," << tileX << "," << tileY << ") Pixel (" << (mouse_x/General::scale) << "," << (mouse_y/General::scale) << ")";
 				statusLabel->setText(ss.str());
 				if (levelEditor->getNumLayers() != layerCombo->getSize()) {
 					layerCombo->clearValues();

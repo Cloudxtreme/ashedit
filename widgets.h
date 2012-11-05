@@ -202,7 +202,9 @@ public:
 				target = this;
 			}
 		}
-		
+
+		abs_x /= General::scale;
+		abs_y /= General::scale;
 		int target_x, target_y;
 		tgui::determineAbsolutePosition(target, &target_x, &target_y);
 		rel_x = abs_x - target_x;
@@ -1787,8 +1789,8 @@ class A_Tileselector : public A_Canvas {
 public:
 	virtual void mouseDown(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
 		if (rel_x >= 0) {
-			selected_x = rel_x / General::tileSize;
-			selected_y = rel_y / General::tileSize;
+			selected_x = rel_x / General::tileSize / General::scale;
+			selected_y = rel_y / General::tileSize / General::scale;
 		}
 	}
 
@@ -1882,7 +1884,10 @@ public:
 	void resizeScrollpane(void) {
 		A_Scrollpane *scrollpane = dynamic_cast<A_Scrollpane *>(parent);
 		if (scrollpane) {
-			scrollpane->setScrollSize(tiles[0].size()*General::tileSize, tiles.size()*General::tileSize);
+			scrollpane->setScrollSize(
+				tiles[0].size()*(General::tileSize*General::scale),
+				tiles.size()*(General::tileSize*General::scale)
+			);
 		}
 	}
 
@@ -2363,8 +2368,8 @@ public:
 
 	virtual void mouseMove(int rel_x, int rel_y, int abs_x, int abs_y) {
 		if (rel_x >= 0) {
-			statusX = rel_x / General::tileSize;
-			statusY = rel_y / General::tileSize;
+			statusX = rel_x / General::tileSize / General::scale;
+			statusY = rel_y / General::tileSize / General::scale;
 			if (down) {
 				if (statusX >= 0 && tool == TOOL_CLONE) {
 					int tx = cloneTileX + (statusX - cloneStartX);
@@ -2403,8 +2408,8 @@ public:
 				cloneStartY = statusY;
 				ts->getSelected(&cloneTileX, &cloneTileY);
 			}
-			int xx = rel_x / General::tileSize;
-			int yy = rel_y / General::tileSize;
+			int xx = rel_x / General::tileSize / General::scale;
+			int yy = rel_y / General::tileSize / General::scale;
 			placeTile(xx, yy);
 			down = true;
 		}
