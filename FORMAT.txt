@@ -1,0 +1,36 @@
+File format: Everything little endian
+
+NOTE: See bottom for Monster RPG 2 level format
+(it's different)
+
+Header
+------
+32 bits: Level width
+32 bits: Level height
+32 Bits: Number of layers
+
+Level data
+----------
+for each layer
+	for each row
+		for each column
+			32 bits: Tile number
+			8 bits: Sheet number
+			8 bits: Solid (1 or 0)
+
+
+-----
+
+For Monster RPG 2:
+
+32 bits level width
+32 bits level height
+32 bits number of unique tiles used
+32 bits one int per unique tile used = tile number
+for each row
+	for each column
+		for each of 4 layers
+			tile index (into previously
+			written tile numbers array)
+		tile solid market 1 byte
+
