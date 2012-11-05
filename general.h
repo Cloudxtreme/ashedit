@@ -10,6 +10,7 @@ public:
 	static int tileSize;
 	static int areaSize;
 	static int startLayers;
+	static bool can_add_and_delete_layers;
 	static int scale;
 };
 

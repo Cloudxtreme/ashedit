@@ -2058,7 +2058,7 @@ public:
 				tool = TOOL_FILL_CURRENT;
 			}
 		}
-		else if (keycode == ALLEGRO_KEY_L) {
+		else if (keycode == ALLEGRO_KEY_L && General::can_add_and_delete_layers) {
 			if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
 				if (tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) {
 					if (layer == layers-1)
