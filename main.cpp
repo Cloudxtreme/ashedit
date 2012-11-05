@@ -523,7 +523,7 @@ int main(int argc, char **argv)
 	tgui::resize(NULL); // similar to java pack(), on all widgets
 
 	if (argc > 2) {
-      std::string level_data = std::string(argv[1]) + "/" + std::string(argv[2]);
+      std::string level_data = argv[2];
       printf("loading level data: %s\n", level_data.c_str());
 		levelEditor->load(level_data);
 		levelEditor->setLastSaveName(level_data);
