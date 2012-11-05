@@ -2490,6 +2490,38 @@ public:
 
 		int w = readInt(f);
 		int h = readInt(f);
+
+#ifdef MONSTERRPG2
+		layers = General::startLayers;
+
+		size(w, h);
+
+		resizeScrollpane();
+
+		int nTileTypes = readInt(f);
+
+		std::vector<int> tileTypes;
+
+		for (int i = 0; i < nTileTypes; i++) {
+			tileTypes.push_back(readInt(f));
+		}
+
+		for (unsigned int y = 0; y < tiles.size(); y++) {
+			for (unsigned int x = 0; x < tiles[0].size(); x++) {
+				for (int l = 0; l < General::startLayers; l++) {
+					_Tile &t = tiles[y][x][l];
+					int n = readInt(f);
+					t.number = n < 0 ? -1 : tileTypes[n];
+					t.sheet = n < 0 ? -1 : 0;
+				}
+				bool solid = al_fgetc(f);
+				for (int l = 0; l < General::startLayers; l++) {
+					_Tile &t = tiles[y][x][l];
+					t.solid = solid;
+				}
+			}
+		}
+#else
 		layers = readInt(f);
 
 		size(w, h);
@@ -2508,6 +2540,7 @@ public:
 				}
 			}
 		}
+#endif
 
 		al_fclose(f);
 	}
@@ -2532,7 +2565,6 @@ public:
 					_Tile t = tiles[y][x][l];
 					if (t.number < 0) continue;
 					if (std::find(used_tiles.begin(), used_tiles.end(), t.number) == used_tiles.end()) {
-					printf("push %d\n", t.number);
 						used_tiles.push_back(t.number);
 					}
 				}
