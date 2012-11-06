@@ -2288,7 +2288,7 @@ public:
 			u2.solid = tiles[y][x][mover_dest_layer].solid;
 			undo.push_back(u2);
 		}
-		else {
+		else if (tool != TOOL_FILL_CURRENT && tool != TOOL_FILL_ALL) {
 			_TilePlusPlus u;
 			u.x = x;
 			u.y = y;
@@ -2736,8 +2736,7 @@ protected:
 			}
 		}
 
-        std::vector<bool> spread(neighbors.size());
-		//bool spread[neighbors.size()];
+		std::vector<bool> spread(neighbors.size());
 	
 		if (check_all_layers) {
 			for (int i = 0; i < (int)neighbors.size(); i++) {
@@ -2784,18 +2783,22 @@ protected:
 				continue;
 			}
 			Point p = neighbors[i];
-			/*
-			if (layers[layer].tiles[p.Y][p.X].tile_num != new_tile ||
-					 layers[layer].tiles[p.Y][p.X].tile_sheet != new_sheet) {
-				stack.Push(p);
-			}
-			*/
 			if (tiles[p.y][p.x][layer].number != new_tile || tiles[p.y][p.x][layer].sheet != new_sheet) {
 				stack.push(p);
 			}
 		}
-	
+		
 		_Tile &t = tiles[y][x][layer];
+			
+		_TilePlusPlus u;
+		u.x = x;
+		u.y = y;
+		u.layer = layer;
+		u.number = t.number;
+		u.sheet = t.sheet;
+		u.solid = t.solid;
+		undo.push_back(u);
+	
 		t.number = new_tile;
 		t.sheet = new_sheet;
 	}
