@@ -1891,13 +1891,10 @@ public:
 		}
 	}
 
-	void clearUndo(void) {
-		undo.clear();
-		undoes.clear();
-	}
-
 	void deleteLayer(int i) {
 		if (layers < 2) return;
+
+		push_undo();
 
 		for (unsigned int y = 0; y < tiles.size(); y++) {
 			for (unsigned int x = 0; x < tiles[y].size(); x++) {
@@ -1910,6 +1907,8 @@ public:
 	}
 
 	void insertLayer(int i) {
+		push_undo();
+
 		layers++;
 		_Tile t = createEmpty_Tile();
 		for (unsigned int y = 0; y < tiles.size(); y++) {
@@ -1932,20 +1931,23 @@ public:
 	}
 
 	void deleteRow(int i) {
+		if (tiles.size() <= i) return;
+		push_undo();
 		tiles.erase(tiles.begin() + i);
 		resizeScrollpane();
-		clearUndo();
 	}
 
 	void deleteColumn(int i) {
+		if (tiles[0].size() <= i) return;
+		push_undo();
 		for (unsigned int y = 0; y < tiles.size(); y++) {
 			tiles[y].erase(tiles[y].begin() + i);
 		}
 		resizeScrollpane();
-		clearUndo();
 	}
 
 	void insertRow(int i) {
+		push_undo();
 		std::vector< std::vector<_Tile> > row = createRow(tiles[0].size());
 		std::vector< std::vector< std::vector<_Tile> > >::iterator it;
 		if (i < 0)
@@ -1954,10 +1956,10 @@ public:
 			it = tiles.begin() + i;
 		tiles.insert(it, row);
 		resizeScrollpane();
-		clearUndo();
 	}
 
 	void insertColumn(int i) {
+		push_undo();
 		std::vector<_Tile> t = createEmptyTile();
 		for (unsigned int y = 0; y < tiles.size(); y++) {
 			if (i < 0) {
@@ -1968,7 +1970,6 @@ public:
 			}
 		}
 		resizeScrollpane();
-		clearUndo();
 	}
 
 	virtual void keyDown(int keycode) {
@@ -2135,51 +2136,19 @@ public:
 			*yy = statusY;
 	}
 
-	void applyUndo(_TilePlusPlus u, std::vector<_TilePlusPlus> &opposite) {
-		_TilePlusPlus t;
-		t.x = u.x;
-		t.y = u.y;
-		t.layer = u.layer;
-		t.number = tiles[u.y][u.x][u.layer].number;
-		t.sheet = tiles[u.y][u.x][u.layer].sheet;
-		t.solid = tiles[u.y][u.x][u.layer].solid;
-		opposite.push_back(t);
-		tiles[u.y][u.x][u.layer].number = u.number;
-		tiles[u.y][u.x][u.layer].sheet = u.sheet;
-		tiles[u.y][u.x][u.layer].solid = u.solid;
-	}
-
 	void doUndo(void) {
 		if (undoes.size() <= 0) return;
 
-		std::vector<_TilePlusPlus> &u = undoes[undoes.size()-1];
-		std::vector<_TilePlusPlus> r;
-
-		for (int i = (int)u.size()-1; i >= 0; i--) {
-			applyUndo(u[i], r);
-		}
-		
-		redoes.push_back(r);
-		if (redoes.size() >= MAX_UNDO)
-			redoes.erase(redoes.begin());
-
+		push_redo();
+		tiles = undoes[undoes.size()-1];
 		undoes.erase(undoes.end());
 	}
 	
 	void doRedo(void) {
 		if (redoes.size() <= 0) return;
-
-		std::vector<_TilePlusPlus> &r = redoes[redoes.size()-1];
-		std::vector<_TilePlusPlus> u;
-
-		for (int i = (int)r.size()-1; i >= 0; i--) {
-			applyUndo(r[i], u);
-		}
-
-		undoes.push_back(u);
-		if (undoes.size() >= MAX_UNDO)
-			undoes.erase(undoes.begin());
-
+		
+		push_undo();
+		tiles = redoes[redoes.size()-1];
 		redoes.erase(redoes.end());
 	}
 	
@@ -2269,34 +2238,8 @@ public:
 	}
 
 	void placeTile(int x, int y) {
-		if (x < 0 || y < 0 || x >= (int)tiles[0].size() || y >= (int)tiles.size())
+		if (x < 0 || y < 0 || x >= (int)tiles[0].size() || y >= (int)tiles.size()) {
 			return;
-		if (tool == TOOL_MOVER) {
-			_TilePlusPlus u1, u2;
-			u1.x = x;
-			u1.y = y;
-			u1.layer = mover_src_layer;
-			u1.number = tiles[y][x][mover_src_layer].number;
-			u1.sheet = tiles[y][x][mover_src_layer].sheet;
-			u1.solid = tiles[y][x][mover_src_layer].solid;
-			undo.push_back(u1);
-			u2.x = x;
-			u2.y = y;
-			u2.layer = mover_dest_layer;
-			u2.number = tiles[y][x][mover_dest_layer].number;
-			u2.sheet = tiles[y][x][mover_dest_layer].sheet;
-			u2.solid = tiles[y][x][mover_dest_layer].solid;
-			undo.push_back(u2);
-		}
-		else if (tool != TOOL_FILL_CURRENT && tool != TOOL_FILL_ALL) {
-			_TilePlusPlus u;
-			u.x = x;
-			u.y = y;
-			u.layer = layer;
-			u.number = tiles[y][x][layer].number;
-			u.sheet = tiles[y][x][layer].sheet;
-			u.solid = tiles[y][x][layer].solid;
-			undo.push_back(u);
 		}
 		_TilePlusPlus mt;
 		mt.x = x;
@@ -2399,10 +2342,26 @@ public:
 		}
 	}
 
+	void push_undo(void) {
+		undoes.push_back(tiles);
+		if (undoes.size() >= MAX_UNDO) {
+			undoes.erase(undoes.begin());
+		}
+	}
+
+	void push_redo(void) {
+		redoes.push_back(tiles);
+		if (redoes.size() >= MAX_UNDO) {
+			redoes.erase(redoes.begin());
+		}
+	}
+
 	virtual void mouseDown(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
 		if (mb != 1) return;
-      
+
 		if (rel_x >= 0) {
+			push_undo();
+
 			if (tool == TOOL_CLONE) {
 				cloneStartX = statusX;
 				cloneStartY = statusY;
@@ -2420,14 +2379,7 @@ public:
       
 		down = false;
 
-		if (rel_x >= 0) {
-			undoes.push_back(undo);
-			if (undoes.size() >= MAX_UNDO) {
-				undoes.erase(undoes.begin());
-			}
-			redoes.clear();
-		}
-		undo.clear();
+		redoes.clear();
 
 		cloneStartX = -1;
 	}
@@ -2449,8 +2401,6 @@ public:
 	
 	void size(int w, int h) {
 		tiles.clear();
-
-		clearUndo();
 
 		for (int i = 0; i < h; i++) {
 			std::vector< std::vector<_Tile> > row = createRow(w);
@@ -2548,6 +2498,9 @@ public:
 #endif
 
 		al_fclose(f);
+
+		undoes.clear();
+		redoes.clear();
 	}
 
 	void setLastSaveName(std::string name)
@@ -2669,6 +2622,8 @@ public:
 	void createNew(void) {
 		size(General::areaSize, General::areaSize);
 		operatingFilename = "";
+		undoes.clear();
+		redoes.clear();
 	}
 
 	void record(void) {
@@ -2712,7 +2667,7 @@ public:
 	}
 
 protected:
-	static const unsigned int MAX_UNDO = 10;
+	static const unsigned int MAX_UNDO = 100;
 
 	Point mkpoint(int x, int y) {
 		Point p;
@@ -2789,16 +2744,6 @@ protected:
 		}
 		
 		_Tile &t = tiles[y][x][layer];
-			
-		_TilePlusPlus u;
-		u.x = x;
-		u.y = y;
-		u.layer = layer;
-		u.number = t.number;
-		u.sheet = t.sheet;
-		u.solid = t.solid;
-		undo.push_back(u);
-	
 		t.number = new_tile;
 		t.sheet = new_sheet;
 	}
@@ -2808,10 +2753,11 @@ protected:
 	int layer;
 	int number;
 	int sheet;
-	std::vector< std::vector< std::vector<_Tile> > > tiles;
-	std::vector<_TilePlusPlus> undo;
-	std::vector< std::vector<_TilePlusPlus> > undoes;
-	std::vector< std::vector<_TilePlusPlus> > redoes;
+
+	typedef std::vector< std::vector< std::vector<_Tile> > > Lvl;
+	Lvl tiles;
+	std::vector<Lvl> undoes;
+	std::vector<Lvl> redoes;
 	ALLEGRO_PATH *loadSavePath;
 	std::string lastSaveName;
 	std::string operatingFilename;
