@@ -2317,8 +2317,8 @@ public:
 				if (statusX >= 0 && tool == TOOL_CLONE) {
 					int tx = cloneTileX + (statusX - cloneStartX);
 					int ty = cloneTileY + (statusY - cloneStartY);
-					int tw = al_get_bitmap_width(tileSheets[0]) / General::tileSize;
-					int th = al_get_bitmap_height(tileSheets[0]) / General::tileSize;
+					int tw = al_get_bitmap_width(tileSheets[0]) / (General::tileSize*General::scale);
+					int th = al_get_bitmap_height(tileSheets[0]) / (General::tileSize*General::scale);
 					tx %= tw;
 					ty %= th;
 					ts->setSelected(tx, ty);
