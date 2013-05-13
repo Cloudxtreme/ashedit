@@ -2547,7 +2547,7 @@ public:
 						}
 					}
 					writeInt(f, t.number < 0 ? -1 : idx);
-					if (t.solid) {
+					if (l == 0 && t.solid) {
 						solid = true;
 					}
 				}

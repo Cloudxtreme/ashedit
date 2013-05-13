@@ -1,8 +1,6 @@
 #ifndef GENERAL_H
 #define GENERAL_H
 
-#define MONSTERRPG2
-
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 class General {

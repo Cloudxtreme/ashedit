@@ -136,9 +136,9 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 			al_draw_filled_rectangle(
 				dx,
 				dy,
-				dx+maxx*General::scale,
-				dy+maxy*General::scale,
-				al_color_name("yellow")
+				dx+maxx,
+				dy+maxy,
+				al_color_name("lime")
 			);
 		}
 	}
@@ -397,7 +397,7 @@ int main(int argc, char **argv)
 	al_init_primitives_addon();
 
 	al_set_new_display_flags(ALLEGRO_RESIZABLE);
-	display = al_create_display(640, 480);
+	display = al_create_display(800, 600);
 	ALLEGRO_FONT *font = al_load_ttf_font("DejaVuSans.ttf", 12, 0);
 	queue = al_create_event_queue();
 	ALLEGRO_TIMER *draw_timer = al_create_timer(1.0/20.0);
@@ -556,8 +556,8 @@ int main(int argc, char **argv)
 			else if ((event.type == ALLEGRO_EVENT_KEY_DOWN &&
 				event.keyboard.keycode == ALLEGRO_KEY_ENTER)) {
 				// Save whole area as png
-				int w = levelEditor->getWidth()*General::tileSize;
-				int h = levelEditor->getHeight()*General::tileSize;
+				int w = levelEditor->getWidth()*General::tileSize*General::scale;
+				int h = levelEditor->getHeight()*General::tileSize*General::scale;
 				//al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP);
 				ALLEGRO_BITMAP *png = al_create_bitmap(w, h);
 				ALLEGRO_BITMAP *old_target = al_get_target_bitmap();
