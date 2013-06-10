@@ -76,8 +76,8 @@ static void tileDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int l
 		0
 	);
 
-	int sel_x, sel_y;
-	tileSelector->getSelected(&sel_x, &sel_y);
+	int sel_x, sel_y, sel_w, sel_h;
+	tileSelector->getSelected(&sel_x, &sel_y, &sel_w, &sel_h);
 
 	int rx = dx + ((sel_x*General::tileSize*General::scale) - ox);
 	int ry = dy + ((sel_y*General::tileSize*General::scale) - oy);
@@ -85,24 +85,24 @@ static void tileDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int l
 	al_draw_rectangle(
 		rx+0.5,
 		ry+0.5,
-		rx+General::tileSize*General::scale-0.5,
-		ry+General::tileSize*General::scale-0.5,
+		rx+General::tileSize*sel_w*General::scale-0.5,
+		ry+General::tileSize*sel_h*General::scale-0.5,
 		al_color_name("black"),
 		1
 	);
 	al_draw_rectangle(
 		rx+1.5,
 		ry+1.5,
-		rx+General::tileSize*General::scale-1.5,
-		ry+General::tileSize*General::scale-1.5,
+		rx+General::tileSize*sel_w*General::scale-1.5,
+		ry+General::tileSize*sel_h*General::scale-1.5,
 		al_color_name("yellow"),
 		1
 	);
 	al_draw_rectangle(
 		rx+2.5,
 		ry+2.5,
-		rx+General::tileSize*General::scale-2.5,
-		ry+General::tileSize*General::scale-2.5,
+		rx+General::tileSize*sel_w*General::scale-2.5,
+		ry+General::tileSize*sel_h*General::scale-2.5,
 		al_color_name("black"),
 		1
 	);
@@ -231,6 +231,43 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 			xx + (General::tileSize*General::scale),
 			yy + (General::tileSize*General::scale),
 			al_map_rgba(0, 0, 0, 128), 2.0);
+	}
+
+	if (levelEditor->getTool() == "Marquee") {
+		ALLEGRO_COLOR c;
+		float f = fmod(al_get_time(), 2);
+		if (f > 1) {
+			f = 2 - f;
+		}
+		c = al_map_rgb_f(f, f, f);
+
+		int x1, y1, x2, y2;
+
+		if (levelEditor->is_marquee_floating()) {
+			std::vector< std::vector< std::vector<A_Leveleditor::_Tile> > > paste = levelEditor->get_marquee_buffer();
+			levelEditor->get_marquee_float_xy(&x1, &y1);
+			x2 = x1 + paste[0].size();
+			y2 = y1 + paste.size();
+			x1 = xx + (x1 * General::tileSize * General::scale) - ox;
+			y1 = yy + (y1 * General::tileSize * General::scale) - oy;
+			x2 = xx + (x2 * General::tileSize * General::scale) - ox;
+			y2 = yy + (y2 * General::tileSize * General::scale) - oy;
+			al_draw_rectangle(
+				x1, y1, x2, y2, c, 1
+			);
+		}
+		else {
+			levelEditor->get_marquee(&x1, &y1, &x2, &y2);
+			if (x1 >= 0) {
+				x1 = xx + (x1 * General::tileSize * General::scale) - ox;
+				y1 = yy + (y1 * General::tileSize * General::scale) - oy;
+				x2 = xx + (x2 * General::tileSize * General::scale) - ox;
+				y2 = yy + (y2 * General::tileSize * General::scale) - oy;
+				al_draw_rectangle(
+					x1, y1, x2, y2, c, 1
+				);
+			}
+		}
 	}
 }
 
@@ -667,8 +704,6 @@ int main(int argc, char **argv)
 						quickRefSplitter = new A_Splitter(A_Splitter::SPLIT_HORIZONTAL);
 						quickRefBottomSplitter = new A_Splitter(A_Splitter::SPLIT_VERTICAL);
 						quickRefContent1 = new A_Label(
-							"NO UNDO for these!\n"
-							"\n"
 							"Ctrl-R\n"
 							"Shift-Ctrl-R\n"
 							"Ctrl-C\n"
@@ -692,8 +727,6 @@ int main(int argc, char **argv)
 							al_color_name("white")
 						);
 						quickRefContent2 = new A_Label(
-							"\n"
-							"\n"
 							"Insert row before cursor\n"
 							"Insert row after cursor\n"
 							"Insert column before cursor\n"
@@ -761,7 +794,7 @@ int main(int argc, char **argv)
 					levelEditor->setMoverDestLayer(layerCombo->getSelected());
 				}
 				int tileX, tileY;
-				tileSelector->getSelected(&tileX, &tileY);
+				tileSelector->getSelected(&tileX, &tileY, NULL, NULL);
 				
 				int tileNumber = 0;
 				if(tileSheets.size()) {

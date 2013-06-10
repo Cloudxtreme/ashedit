@@ -1789,34 +1789,90 @@ class A_Tileselector : public A_Canvas {
 public:
 	virtual void mouseDown(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
 		if (rel_x >= 0) {
+			down = true;
 			selected_x = rel_x / General::tileSize / General::scale;
 			selected_y = rel_y / General::tileSize / General::scale;
+			selected_w = 1;
+			selected_h = 1;
+		}
+	}
+	virtual void mouseMove(int rel_x, int rel_y, int abs_x, int abs_y) {
+		if (down) {
+			int x = rel_x / General::tileSize / General::scale;
+			int y = rel_y / General::tileSize / General::scale;
+			selected_w = x - selected_x;
+			selected_h = y - selected_y;
+			if (x < selected_x) {
+				selected_w--;
+			}
+			else {
+				selected_w++;
+			}
+			if (y < selected_y) {
+				selected_h--;
+			}
+			else {
+				selected_h++;
+			}
+		}
+	}
+	virtual void mouseUp(int rel_x, int rel_y, int abs_x, int abs_y, int mb)
+	{
+		down = false;
+	}
+
+	void getSelected(int *x, int *y, int *w, int *h) {
+		if (selected_w < 0) {
+			if (x)
+				*x = selected_x + selected_w + 1;
+			if (w)
+				*w = -selected_w;
+		}
+		else {
+			if (x)
+				*x = selected_x;
+			if (w)
+				*w = selected_w;\
+		}
+
+		if (selected_h < 0) {	
+			if (y)
+				*y = selected_y + selected_h + 1;
+			if (h)
+				*h = -selected_h;
+		}
+		else {
+			if (y)
+				*y = selected_y;
+			if (h)
+				*h = selected_h;
 		}
 	}
 
-	void getSelected(int *x, int *y) {
-		if (x)
-			*x = selected_x;
-		if (y)
-			*y = selected_y;
-	}
-
-	void setSelected(int x, int y)
+	void setSelected(int x, int y, int w, int h)
 	{
 		selected_x = x;
 		selected_y = y;
+		selected_w = w;
+		selected_h = h;
 	}
 
 	A_Tileselector(drawCallback callback) :
 		A_Canvas(callback),
 		selected_x(0),
-		selected_y(0)
+		selected_y(0),
+		selected_w(1),
+		selected_h(1),
+		down(false)
 	{
 	}
 
 protected:
 	int selected_x;
 	int selected_y;
+	int selected_w;
+	int selected_h;
+	bool down;
 };
 
 class A_Leveleditor : public A_Canvas {
@@ -1830,6 +1886,7 @@ public:
 	static const int TOOL_FILL_CURRENT = 6;
 	static const int TOOL_FILL_ALL = 7;
 	static const int TOOL_RAISER = 8;
+	static const int TOOL_MARQUEE = 9;
 
 	struct _TilePlusPlus {
 		int x, y, layer, number, sheet;
@@ -1975,6 +2032,16 @@ public:
 	virtual void keyDown(int keycode) {
 		bool using_mover = (tool == TOOL_MOVER);
 		bool using_raiser = (tool == TOOL_RAISER);
+
+		if (marquee_floating) {
+			if (keycode != ALLEGRO_KEY_SPACE) {
+				marquee_floating = false;
+			}
+			else {
+				// FIXME: anchor floating marquee
+			}
+		}
+
 		if (keycode == ALLEGRO_KEY_Z) {
 			if ((tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) && (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL))) {
 				doRedo();
@@ -2045,11 +2112,70 @@ public:
 		else if (keycode == ALLEGRO_KEY_B) {
 			tool = TOOL_BRUSH;
 		}
+		else if (keycode == ALLEGRO_KEY_Q) {
+			tool = TOOL_MARQUEE;
+			marquee_x1 = -1;
+		}
 		else if (keycode == ALLEGRO_KEY_S) {
 			tool = TOOL_SOLID;
 		}
 		else if (keycode == ALLEGRO_KEY_M) {
 			tool = TOOL_MACRO;
+		}
+		else if (keycode == ALLEGRO_KEY_X) {
+			if (tool != TOOL_MARQUEE)
+				return;
+			if (abs(marquee_x1-marquee_x2) == 0 || abs(marquee_y1-marquee_y2) == 0)
+				return;
+			int layer_start;
+			int layer_end;
+			if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
+				layer_start = 0;
+				layer_end = tiles.size();
+			}
+			else {
+				layer_start = layer;
+				layer_end = layer+1;
+			}
+			marquee_buffer_filled = true;
+			marquee_buffer.clear();
+			int x1, y1, x2, y2;
+			get_marquee(&x1, &y1, &x2, &y2);
+			for (int yy = y1; yy < y2; yy++) {
+				std::vector< std::vector<_Tile> > r;
+				for (int xx = x1; xx < x2; xx++) {
+					std::vector<_Tile> g;
+					for (int i = layer_start; i < layer_end; i++) {
+						_Tile t;
+						t.number = tiles[yy][xx][i].number;
+						t.sheet = tiles[yy][xx][i].sheet;
+						t.solid = tiles[yy][xx][i].solid;
+						g.push_back(t);
+					}
+					r.push_back(g);
+				}
+				marquee_buffer.push_back(r);
+			}
+		}
+		else if (keycode == ALLEGRO_KEY_P) {
+			if (marquee_buffer_filled) {
+				marquee_layer = layer;
+				int offsx = ((A_Scrollpane *)parent)->getOffsetX();
+				int offsy = ((A_Scrollpane *)parent)->getOffsetY();
+				int spw = ((A_Scrollpane *)parent)->getWidth();
+				int sph = ((A_Scrollpane *)parent)->getHeight();
+				int rows = marquee_buffer.size();
+				int cols = marquee_buffer[0].size();
+				int pixw = rows * General::tileSize * General::scale;
+				int pixh = cols * General::tileSize * General::scale;
+				int topx = (offsx+spw/2) - pixw/2;
+				int topy = (offsy+sph/2) - pixh/2;
+				marquee_float_x = topx / General::tileSize / General::scale;
+				marquee_float_y = topy / General::tileSize / General::scale;
+				marquee_floating = true;
+				marquee_x1 = -1;
+			}
+
 		}
 		else if (keycode == ALLEGRO_KEY_F) {
 			if (tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) {
@@ -2074,6 +2200,7 @@ public:
 					insertLayer(layer);
 				}
 				layer = 0;
+				marquee_buffer_filled = false;
 			}
 		}
 		else if (keycode == ALLEGRO_KEY_K) {
@@ -2119,6 +2246,8 @@ public:
 				return "Fill All";
 			case TOOL_RAISER:
 				return "Raiser";
+			case TOOL_MARQUEE:
+				return "Marquee";
 		}
 		return "?";
 	}
@@ -2241,15 +2370,15 @@ public:
 		if (x < 0 || y < 0 || x >= (int)tiles[0].size() || y >= (int)tiles.size()) {
 			return;
 		}
+		if (tool == TOOL_MACRO) {
+			doMacro(x, y);
+			return;
+		}
 		_TilePlusPlus mt;
 		mt.x = x;
 		mt.y = y;
 		mt.layer = layer;
 		mt.tool = tool;
-		if (tool == TOOL_MACRO) {
-			doMacro(x, y);
-			return;
-		}
 		use_tool(tool, x, y, layer, number, sheet);
 		if (tool == TOOL_CLONE || tool == TOOL_BRUSH) {
 			mt.number = number;
@@ -2285,7 +2414,13 @@ public:
 	}
 
 	void getTile(int xx, int yy, int l, int *number, int *sheet, bool *solid, bool *tint) {
-		_Tile t = tiles[yy][xx][l];
+		_Tile t;
+		if (marquee_floating && (l == marquee_layer || marquee_layer == -1) && (xx >= marquee_float_x && xx < (marquee_float_x+marquee_buffer[0].size()) && yy >= marquee_float_y && yy < (marquee_float_y+marquee_buffer.size()))) {
+			t = marquee_buffer[yy-marquee_float_y][xx-marquee_float_x][marquee_layer == -1 ? l : 0];
+		}
+		else {
+			t = tiles[yy][xx][l];
+		}
 		if (number)
 			*number = t.number;
 		if (sheet)
@@ -2313,26 +2448,38 @@ public:
 		if (rel_x >= 0) {
 			statusX = rel_x / General::tileSize / General::scale;
 			statusY = rel_y / General::tileSize / General::scale;
-			if (down) {
-				if (statusX >= 0 && tool == TOOL_CLONE) {
-					int tx = cloneTileX + (statusX - cloneStartX);
-					int ty = cloneTileY + (statusY - cloneStartY);
-					int tw = al_get_bitmap_width(tileSheets[0]) / (General::tileSize*General::scale);
-					int th = al_get_bitmap_height(tileSheets[0]) / (General::tileSize*General::scale);
-					tx %= tw;
-					ty %= th;
-					ts->setSelected(tx, ty);
-					number = tx + ty*tw;
-				}
-				placeTile(statusX, statusY);
+			if (down && tool == TOOL_MARQUEE) {
+				if (statusX >= marquee_x1)
+					marquee_x2 = statusX+1;
+				else
+					marquee_x2 = statusX;
+				if (statusY >= marquee_y1)
+					marquee_y2 = statusY+1;
+				else
+					marquee_y2 = statusY;
 			}
-			A_Scrollpane *scrollpane = dynamic_cast<A_Scrollpane *>(parent);
-			if (scrollpane) {
-				if (statusX*General::tileSize >= scrollpane->getSizeX()) {
-					statusX = -1;
+			else {
+				if (down) {
+					if (statusX >= 0 && tool == TOOL_CLONE) {
+						int tx = cloneTileX + (statusX - cloneStartX);
+						int ty = cloneTileY + (statusY - cloneStartY);
+						int tw = al_get_bitmap_width(tileSheets[0]) / (General::tileSize*General::scale);
+						int th = al_get_bitmap_height(tileSheets[0]) / (General::tileSize*General::scale);
+						tx %= tw;
+						ty %= th;
+						ts->setSelected(tx, ty, 1, 1);
+						number = tx + ty*tw;
+					}
+					placeTile(statusX, statusY);
 				}
-				if (statusY*General::tileSize >= scrollpane->getSizeY()) {
-					statusY = -1;
+				A_Scrollpane *scrollpane = dynamic_cast<A_Scrollpane *>(parent);
+				if (scrollpane) {
+					if (statusX*General::tileSize >= scrollpane->getSizeX()) {
+						statusX = -1;
+					}
+					if (statusY*General::tileSize >= scrollpane->getSizeY()) {
+						statusY = -1;
+					}
 				}
 			}
 		}
@@ -2360,17 +2507,43 @@ public:
 		if (mb != 1) return;
 
 		if (rel_x >= 0) {
-			push_undo();
-
-			if (tool == TOOL_CLONE) {
-				cloneStartX = statusX;
-				cloneStartY = statusY;
-				ts->getSelected(&cloneTileX, &cloneTileY);
-			}
 			int xx = rel_x / General::tileSize / General::scale;
 			int yy = rel_y / General::tileSize / General::scale;
-			placeTile(xx, yy);
-			down = true;
+
+			if (tool == TOOL_MARQUEE) {
+				marquee_x1 = xx;
+				marquee_y1 = yy;
+				marquee_x2 = xx+1;
+				marquee_y2 = yy+1;
+				down = true;
+			}
+			else {
+				push_undo();
+
+				if (tool == TOOL_CLONE) {
+					cloneStartX = statusX;
+					cloneStartY = statusY;
+					ts->getSelected(&cloneTileX, &cloneTileY, NULL, NULL);
+				}
+
+				int sel_x, sel_y, sel_w, sel_h;
+				ts->getSelected(&sel_x, &sel_y, &sel_w, &sel_h);
+
+				if (tool == TOOL_BRUSH && (sel_w > 1 || sel_h > 1)) {
+					for (int _y = 0; _y < sel_h; _y++) {
+						for (int _x = 0; _x < sel_w; _x++) {
+							int tw = al_get_bitmap_width(tileSheets[0]) / (General::tileSize*General::scale);
+							int number = (sel_x+_x) + ((sel_y+_y)*tw);
+							use_tool(tool, xx+_x, yy+_y, layer, number, sheet);
+						}
+					}
+					down = false;
+				}
+				else {
+					placeTile(xx, yy);
+					down = true;
+				}
+			}
 		}
 	}
 
@@ -2638,10 +2811,46 @@ public:
 		return visible[l];
 	}
 
-   void toggleLayerVisibility(int layer) {
-      visible[layer] = !visible[layer];
-   }
-   
+	void get_marquee(int *x1, int *y1, int *x2, int *y2) {
+		if (x1)
+			*x1 = MIN(marquee_x1, marquee_x2);
+		if (x2)
+			*x2 = MAX(marquee_x1, marquee_x2);
+		if (y1)
+			*y1 = MIN(marquee_y1, marquee_y2);
+		if (y2)
+			*y2 = MAX(marquee_y1, marquee_y2);
+	}
+
+	std::vector< std::vector< std::vector<_Tile> > > get_marquee_buffer() {
+		return marquee_buffer;
+	}
+
+	bool is_marquee_floating() {
+		return marquee_floating;
+	}
+
+	void get_marquee_float_xy(int *x, int *y)
+	{
+		if (x)
+			*x = marquee_float_x;
+		if (y)
+			*y = marquee_float_y;
+	}
+
+	int get_marquee_layer() {
+		return marquee_layer;
+	}
+
+	bool is_marquee_buffer_filled()
+	{
+		return marquee_buffer_filled;
+	}
+
+	void toggleLayerVisibility(int layer) {
+		visible[layer] = !visible[layer];
+	}
+
 	A_Leveleditor(drawCallback callback, int layers, A_Tileselector *ts) :
 		A_Canvas(callback),
 		layers(layers),
@@ -2656,7 +2865,11 @@ public:
 		tool(0),
 		recording(false),
 		cloneStartX(-1),
-		ts(ts)
+		ts(ts),
+		marquee_x1(-1),
+		marquee_buffer_filled(false),
+		marquee_floating(false),
+		dragging_marquee(false)
 	{
 		size(General::areaSize, General::areaSize);
 		loadSavePath = al_create_path("");
@@ -2772,6 +2985,18 @@ protected:
 	int mover_src_layer, mover_dest_layer;
 	std::vector< std::pair<int, int> > already_moved;
 	std::vector<bool> visible;
+
+	int marquee_x1;
+	int marquee_y1;
+	int marquee_x2;
+	int marquee_y2;
+	bool marquee_buffer_filled;
+	std::vector< std::vector< std::vector<_Tile> > > marquee_buffer;
+	int marquee_layer;
+	bool marquee_floating;
+	int marquee_float_x;
+	int marquee_float_y;
+	bool dragging_marquee;
 };
 
 class A_Label : public tgui::TGUIWidget {

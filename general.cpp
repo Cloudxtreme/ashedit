@@ -2,6 +2,8 @@
 
 int General::areaSize = 20;
 
+#define MONSTERRPG2
+
 #ifdef MONSTERRPG2
 int General::tileSize = 16;
 int General::startLayers = 4;
