@@ -1,6 +1,8 @@
 project(AshEdit2)
 cmake_minimum_required(VERSION 2.8)
 
+option(MO2 "Build for Monster RPG 2 format levels" on)
+
 set(ASHEDIT2_SRC main.cpp general.cpp)
 
 if(NOT ("${USER_INCLUDE_PATH}" STREQUAL ""))
@@ -37,6 +39,9 @@ endif(APPLE)
 
 if(WIN32)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mwindows -static-libgcc -static-libstdc++ -g")
+	if(MO2)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMONSTERRPG2")
+	endif()
 	set(CMAKE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 endif(WIN32)
 
