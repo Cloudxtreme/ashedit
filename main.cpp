@@ -380,7 +380,6 @@ void loadTileSheets(const char *path)
 		
 		const char *ent_ext = al_get_path_extension(path);
 		if(strcmp(ent_ext, ".png") == 0 && strncmp(ent_name, "tiles", 5) == 0) {
-			//fprintf(stderr, "found: %s\n", al_path_cstr(path, ALLEGRO_NATIVE_PATH_SEP));
 			items.push_back(path);
 		}
 	}
@@ -415,7 +414,6 @@ void loadTileSheets(const char *path)
 		al_restore_state(&st);
 		al_destroy_bitmap(tmp);
 		tileSheets.push_back(bmp);
-		//fprintf(stderr, "loaded tilesheet: %s\n", al_path_cstr(items[i], ALLEGRO_NATIVE_PATH_SEP));
 		al_destroy_path(items[i]);
 		
 		char buf[20];
@@ -563,7 +561,6 @@ int main(int argc, char **argv)
 
 	if (argc > 2) {
       std::string level_data = argv[2];
-      printf("loading level data: %s\n", level_data.c_str());
 		levelEditor->load(level_data);
 		levelEditor->setLastSaveName(level_data);
 	}
@@ -706,30 +703,31 @@ int main(int argc, char **argv)
 						quickRefSplitter = new A_Splitter(A_Splitter::SPLIT_HORIZONTAL);
 						quickRefBottomSplitter = new A_Splitter(A_Splitter::SPLIT_VERTICAL);
 						quickRefContent1 = new A_Label(
-							"Ctrl-R\n"
-							"Shift-Ctrl-R\n"
-							"Ctrl-C\n"
-							"Shift-Ctrl-C\n"
-							"Ctrl-Delete\n"
-							"Shift-Ctrl-Delete\n"
-							"Ctrl-L\n"
-							"Shift-Ctrl-L\n"
-							"Ctrl-Alt-L\n"
-							"B\n"
-							"C\n"
-							"S\n"
-							"M\n"
-							"K\n"
-							"V\n"
-							"F\n"
-							"Shift-F\n"
-							"R\n"
-							"T\n"
-							"Enter\n"
-							"Q\n"
-							"Comma\n"
-							"Period\n"
-							"Slash\n",
+							" Ctrl-R\n"
+							" Shift-Ctrl-R\n"
+							" Ctrl-C\n"
+							" Shift-Ctrl-C\n"
+							" Ctrl-Delete\n"
+							" Shift-Ctrl-Delete\n"
+							" Ctrl-L\n"
+							" Shift-Ctrl-L\n"
+							" Ctrl-Alt-L\n"
+							" B\n"
+							" C\n"
+							" S\n"
+							" M\n"
+							" K\n"
+							" V\n"
+							" F\n"
+							" Shift-F\n"
+							" R\n"
+							" T\n"
+							" Enter\n"
+							" Q\n"
+							" Comma\n"
+							" Period\n"
+							" Slash\n"
+							" Space\n",
 							al_color_name("white")
 						);
 						quickRefContent2 = new A_Label(
@@ -756,7 +754,8 @@ int main(int argc, char **argv)
 							"Marquee tool\n"
 							"Copy (all layers with Ctrl)\n"
 							"Cut (all layers with Ctrl)\n"
-							"Paste\n",
+							"Paste\n"
+							"Anchor floating selection\n",
 							al_color_name("white")
 						);
 						quickRefContent1->setX(5);

@@ -33,14 +33,37 @@ public:
 	virtual void translate(int xx, int yy) {
 	}
 
-	virtual void chainDraw(void) {
+	virtual void mouseDown(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
+		if (!child) return;
+		child->mouseDown(rel_x, rel_y, abs_x, abs_y, mb);
+	}
+
+	virtual void mouseMove(int rel_x, int rel_y, int abs_x, int abs_y) {
+		if (!child) return;
+		child->mouseMove(rel_x, rel_y, abs_x, abs_y);
+	}
+
+	virtual void mouseUp(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
+		if (!child) return;
+		child->mouseUp(rel_x, rel_y, abs_x, abs_y, mb);
+	}
+
+	virtual void draw(int abs_x, int abs_y) {
 		int prev_x, prev_y, prev_w, prev_h;
-		int abs_x, abs_y;
 		tgui::getClip(&prev_x, &prev_y, &prev_w, &prev_h);
-		tgui::determineAbsolutePosition(this, &abs_x, &abs_y);
 		tgui::setClip(abs_x, abs_y, width, height);
 		if (child) {
-			child->chainDraw();
+			child->draw(abs_x, abs_y);
+		}
+		tgui::setClip(prev_x, prev_y, prev_w, prev_h);
+	}
+
+	virtual void postDraw(int abs_x, int abs_y) {
+		int prev_x, prev_y, prev_w, prev_h;
+		tgui::getClip(&prev_x, &prev_y, &prev_w, &prev_h);
+		tgui::setClip(abs_x, abs_y, width, height);
+		if (child) {
+			child->postDraw(abs_x, abs_y);
 		}
 		tgui::setClip(prev_x, prev_y, prev_w, prev_h);
 	}
@@ -73,21 +96,22 @@ public:
 	static const int SPLIT_HORIZONTAL = 0;
 	static const int SPLIT_VERTICAL = 1;
 
-	virtual void chainKeyDown(int keycode) {
-		if (first_pane->getChild()) {
-			first_pane->getChild()->chainKeyDown(keycode);
+	virtual void chainKeyDown(int chainKeycode) {
+		printf("HERE\n");
+		if (first_pane) {
+			first_pane->chainKeyDown(chainKeycode);
 		}
-		if (second_pane->getChild()) {
-			second_pane->getChild()->chainKeyDown(keycode);
+		if (second_pane) {
+			second_pane->chainKeyDown(chainKeycode);
 		}
 	}
 
-	virtual void chainKeyUp(int keycode) {
-		if (first_pane->getChild()) {
-			first_pane->getChild()->chainKeyUp(keycode);
+	virtual void chainKeyUp(int chainKeycode) {
+		if (first_pane) {
+			first_pane->chainKeyUp(chainKeycode);
 		}
-		if (second_pane->getChild()) {
-			second_pane->getChild()->chainKeyUp(keycode);
+		if (second_pane) {
+			second_pane->chainKeyUp(chainKeycode);
 		}
 	}
 
@@ -103,18 +127,6 @@ public:
 	}
 
 	virtual void translate(int xx, int yy) {
-	/*
-		x += xx;
-		y += yy;
-
-		if (first_pane) {
-			first_pane->translate(xx, yy);
-		}
-		if (second_pane) {
-			second_pane->translate(xx, yy);
-		}
-		*/
-
 		resize();
 	}
 
@@ -123,21 +135,9 @@ public:
 	
 		if (first_pane) {
 			first_pane->raise();
-			/*
-			TGUIWidget *child = first_pane->getChild();
-			if (child) {
-				child->raise();
-			}
-			*/
 		}
 		if (second_pane) {
 			second_pane->raise();
-			/*
-			TGUIWidget *child = second_pane->getChild();
-			if (child) {
-				child->raise();
-			}
-			*/
 		}
 	}
 
@@ -153,6 +153,18 @@ public:
 	}
 
 	virtual void draw(int abs_x, int abs_y) {
+		if (first_pane) {
+			first_pane->draw(abs_x, abs_y);
+		}
+		if (second_pane) {
+			if (split_type == SPLIT_HORIZONTAL) {
+				second_pane->draw(abs_x, abs_y+first_pixels+4);
+			}
+			else {
+				second_pane->draw(abs_x+first_pixels+4, abs_y);
+			}
+		}
+
 		if (!resizable) return;
 
 		// Draw the divider
@@ -178,99 +190,133 @@ public:
 		}
 	}
 
-	TGUIWidget *passMouseOn(int type, int rel_x, int rel_y, int abs_x, int abs_y, int mb, int z, int w) {
-		TGUIWidget *target;
-		if (split_type == SPLIT_HORIZONTAL) {
-			if (rel_y < first_pixels) {
-				target = first_pane->getChild();
-			}
-			else if (rel_y >= first_pixels+4) {
-				target = second_pane->getChild();
+	virtual void chainDraw()
+	{
+		int abs_x, abs_y;
+		determineAbsolutePosition(this, &abs_x, &abs_y);
+		draw(abs_x, abs_y);
+	}
+
+	virtual void postDraw(int abs_x, int abs_y)
+	{
+		if (first_pane) {
+			first_pane->postDraw(abs_x, abs_y);
+		}
+		if (second_pane) {
+			if (split_type == SPLIT_HORIZONTAL) {
+				second_pane->postDraw(abs_x, abs_y+first_pixels+4);
 			}
 			else {
-				target = this;
+				second_pane->postDraw(abs_x+first_pixels+4, abs_y);
 			}
+		}
+	}
+
+
+	void passMouseOn(int type, int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
+		int rx1, rx2, rx3;
+		int ry1, ry2, ry3;
+		TGUIWidget *target;
+
+		if (down_on_slider) {
+			target = this;
 		}
 		else {
-			if (rel_x < first_pixels) {
-				target = first_pane->getChild();
-			}
-			else if (rel_x >= first_pixels+4) {
-				target = second_pane->getChild();
+			if (split_type == SPLIT_HORIZONTAL) {
+				if (rel_y < first_pixels) {
+					target = first_pane;
+				}
+				else if (rel_y >= first_pixels+4) {
+					target = second_pane;
+				}
+				else {
+					target = this;
+				}
 			}
 			else {
-				target = this;
+				if (rel_x < first_pixels) {
+					target = first_pane;
+				}
+				else if (rel_x >= first_pixels+4) {
+					target = second_pane;
+				}
+				else {
+					target = this;
+				}
 			}
 		}
-
-		abs_x /= General::scale;
-		abs_y /= General::scale;
-		int target_x, target_y;
-		tgui::determineAbsolutePosition(target, &target_x, &target_y);
-		rel_x = abs_x - target_x;
-		rel_y = abs_y - target_y;
 
 		if (target == this) {
-			switch (type) {
-				case MOUSE_MOVE:
-					mouseMove(rel_x, rel_y, abs_x, abs_y);
-					mouseScroll(z, w);
-					break;
-				case MOUSE_DOWN:
-					mouseDown(rel_x, rel_y, abs_x, abs_y, mb);
-					break;
-				default:
-					mouseUp(rel_x, rel_y, abs_x, abs_y, mb);
-					break;
-			}
-			return this;
+			rx1 = rel_x;
+			ry1 = rel_y;
+			rx2 = ry2 = rx3 = ry3 = -1;
 		}
-	
-		if (type == MOUSE_MOVE) {
-			return target->chainMouseMove(rel_x, rel_y, abs_x, abs_y, z, w);
-		}
-		else if (type == MOUSE_DOWN) {
-			return target->chainMouseDown(rel_x, rel_y, abs_x, abs_y, mb);
+		else if (target == first_pane) {
+			rx2 = rel_x;
+			ry2 = rel_y;
+			rx1 = ry1 = rx3 = ry3 = -1;
 		}
 		else {
-			return target->chainMouseUp(rel_x, rel_y, abs_x, abs_y, mb);
+			if (split_type == SPLIT_HORIZONTAL) {
+				rx3 = rel_x;
+				ry3 = rel_y - first_pixels - 4;
+			}
+			else {
+				rx3 = rel_x - first_pixels - 4;
+				ry3 = rel_y;
+			}
+			rx1 = ry1 = rx2 = ry2 = -1;
+		}
+
+		switch (type) {
+			case MOUSE_MOVE:
+				_mouseMove(rx1, ry1, abs_x, abs_y);
+				break;
+			case MOUSE_DOWN:
+				_mouseDown(rx1, ry1, abs_x, abs_y, mb);
+				break;
+			default:
+				_mouseUp(rx1, ry1, abs_x, abs_y, mb);
+				break;
+		}
+
+		if (type == MOUSE_MOVE) {
+			first_pane->mouseMove(rx2, ry2, abs_x, abs_y);
+		}
+		else if (type == MOUSE_DOWN) {
+			first_pane->mouseDown(rx2, ry2, abs_x, abs_y, mb);
+		}
+		else {
+			first_pane->mouseUp(rx2, ry2, abs_x, abs_y, mb);
+		}
+
+		if (type == MOUSE_MOVE) {
+			second_pane->mouseMove(rx3, ry3, abs_x, abs_y);
+		}
+		else if (type == MOUSE_DOWN) {
+			second_pane->mouseDown(rx3, ry3, abs_x, abs_y, mb);
+		}
+		else {
+			second_pane->mouseUp(rx3, ry3, abs_x, abs_y, mb);
 		}
 	}
 
-	virtual TGUIWidget *chainMouseMove(int rel_x, int rel_y, int abs_x, int abs_y, int z, int w)
+	virtual void mouseMove(int rel_x, int rel_y, int abs_x, int abs_y)
 	{
-		TGUIWidget *ret = NULL;
-
-		if (pointOnWidget(this, abs_x, abs_y)) {
-			ret = passMouseOn(MOUSE_MOVE, rel_x, rel_y, abs_x, abs_y, 0, z, w);
-		}
-
-		return ret;
+		passMouseOn(MOUSE_MOVE, rel_x, rel_y, abs_x, abs_y, 0);
 	}
 
-	virtual TGUIWidget *chainMouseDown(int rel_x, int rel_y, int abs_x, int abs_y, int mb)
+	virtual void mouseDown(int rel_x, int rel_y, int abs_x, int abs_y, int mb)
 	{
-		TGUIWidget *ret = NULL;
-
-		if (pointOnWidget(this, abs_x, abs_y)) {
-			ret = passMouseOn(MOUSE_DOWN, rel_x, rel_y, abs_x, abs_y, mb, 0, 0);
-		}
-
-		return ret;
+		passMouseOn(MOUSE_DOWN, rel_x, rel_y, abs_x, abs_y, mb);
 	}
 
-	virtual TGUIWidget *chainMouseUp(int rel_x, int rel_y, int abs_x, int abs_y, int mb)
+	virtual void mouseUp(int rel_x, int rel_y, int abs_x, int abs_y, int mb)
 	{
-		TGUIWidget *ret = NULL;
-
-		if (pointOnWidget(this, abs_x, abs_y)) {
-			ret = passMouseOn(MOUSE_UP, rel_x, rel_y, abs_x, abs_y, mb, 0, 0);
-		}
-
-		return ret;
+		passMouseOn(MOUSE_UP, rel_x, rel_y, abs_x, abs_y, mb);
 	}
 
-	virtual void mouseMove(int rel_x, int rel_y, int abs_x, int abs_y) {
+	void _mouseMove(int rel_x, int rel_y, int abs_x, int abs_y) {
 		if (down_on_slider) {
 			int slider_delta;
 			int size;
@@ -320,7 +366,7 @@ public:
 		}
 	}
 
-	virtual void mouseDown(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
+	void _mouseDown(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
 		int my_x, my_y;
 		bool on;
 		tgui::determineAbsolutePosition(this, &my_x, &my_y);
@@ -331,8 +377,9 @@ public:
 				on = false;
 		}
 		else {
-			if (abs_y >= my_y && abs_y < my_y+height)
+			if (abs_y >= my_y && abs_y < my_y+height) {
 				on = (abs_x >= first_pixels && abs_x < first_pixels+4);
+			}
 			else
 				on = false;
 		}
@@ -342,7 +389,7 @@ public:
 		}
 	}
 	
-	void mouseUp(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
+	void _mouseUp(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
 		if (down_on_slider) {
 			down_on_slider = false;
 		}
@@ -469,7 +516,7 @@ public:
 		first_pane = new A_Splitter_Panel(this);
 		second_pane = new A_Splitter_Panel(this);
 		TGUIWidget *oldParent = tgui::getNewWidgetParent();
-		tgui::setNewWidgetParent(NULL);
+		tgui::setNewWidgetParent(this);
 		tgui::addWidget(first_pane);
 		tgui::addWidget(second_pane);
 		tgui::setNewWidgetParent(oldParent);
@@ -483,8 +530,8 @@ protected:
 		tgui::determineAbsolutePosition(this, &abs_x, &abs_y);
 
 		if (pane == first_pane) {
-			*xx = abs_x;
-			*yy = abs_y;
+			*xx = 0;
+			*yy = 0;
 
 			if (split_type == SPLIT_HORIZONTAL) {
 				*w = width;
@@ -497,14 +544,14 @@ protected:
 		}
 		else {
 			if (split_type == SPLIT_HORIZONTAL) {
-				*xx = abs_x;
-				*yy = abs_y+first_pixels+4;
+				*xx = 0;
+				*yy = first_pixels+4;
 				*w = width;
 				*h = second_pixels;
 			}
 			else {
-				*xx = abs_x+first_pixels+4;
-				*yy = abs_y;
+				*xx = first_pixels+4;
+				*yy = 0;
 				*w = second_pixels;
 				*h = height;
 			}
@@ -1186,11 +1233,16 @@ public:
 	virtual void mouseDown(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
 		if (mb != 1) return;
 
+		A_Splitter_Panel *panel = (A_Splitter_Panel *)parent;
+		A_Splitter *splitter = (A_Splitter *)(panel->splitter);
+
 		int show = getShow();
 
 		if (rel_x >= 0 && !opened) {
 			tgui::getTopLevelParent(this)->raise();
 			height = (getShow()+2)*HEIGHT;
+			splitter->setSplitSize(height, -1);
+			tgui::resize(NULL);
 
 			opened = true;
 
@@ -1226,11 +1278,15 @@ public:
 			opened = false;
 			hover = -4;
 			height = HEIGHT;
+			splitter->setSplitSize(height, -1);
+			tgui::resize(NULL);
 		}
 		else {
 			opened = false;
 			hover = -4;
 			height = HEIGHT;
+			splitter->setSplitSize(height, -1);
+			tgui::resize(NULL);
 		}
 	}
 
@@ -1293,7 +1349,7 @@ public:
 
 			y = abs_y + HEIGHT;
 
-			if(values.size()) {
+			if (values.size()) {
 				for (int i = 0; i < show; i++) {
 					ALLEGRO_COLOR color;
 					ALLEGRO_COLOR color2;
@@ -1365,7 +1421,7 @@ public:
 				textColor
 			);
 
-			if(values.size()) {
+			if (values.size()) {
 				al_draw_text(
 					tgui::getFont(),
 					textColor,
@@ -1430,27 +1486,6 @@ class A_Scrollpane : public tgui::TGUIWidget {
 public:
 	static const int THICKNESS = 20;
 
-	TGUIWidget *chainMouseMove(int rel_x, int rel_y, int abs_x, int abs_y, int z, int w)
-	{
-		TGUIWidget *widget = _mouseMove(rel_x, rel_y, abs_x, abs_y);
-		mouseScroll(z, w);
-		return widget;
-	}
-
-	virtual void mouseScroll(int z, int w)
-	{
-		static int prev_z = 0;
-		static int prev_w = 0;
-
-		int dz = 32 * (prev_z - z);
-		int dw = 32 * (prev_w - w);
-
-		scrollBy(dz, dw);
-
-		prev_z = z;
-		prev_w = w;
-	}
-
 	int getBarLength(int widgetSize, int scrollSize) {
 		if (widgetSize > scrollSize)
 			return 0;
@@ -1472,7 +1507,7 @@ public:
 		return widgetSize-barSize-THICKNESS-1;
 	}
 
-	void draw(int abs_x, int abs_y) {
+	void draw_self(int abs_x, int abs_y) {
 		int xx = abs_x+width-THICKNESS;
 		int yy = abs_y;
 		int xx2 = xx+THICKNESS;
@@ -1565,20 +1600,19 @@ public:
 		getScrollSize(&sw, &sh);
 		p1 += (double)rel_x / sw;
 		p2 += (double)rel_y / sh;
-		if(p1 < 0) p1 = 0;
-		else if(p1 > 1) p1 = 1;
-		if(p2 < 0) p2 = 0;
-		else if(p2 > 1) p2 = 1;
+		if (p1 < 0) p1 = 0;
+		else if (p1 > 1) p1 = 1;
+		if (p2 < 0) p2 = 0;
+		else if (p2 > 1) p2 = 1;
 	}
    
-	TGUIWidget *_mouseMove(int rel_x, int rel_y, int abs_x, int abs_y) {
+	virtual void mouseMove(int rel_x, int rel_y, int abs_x, int abs_y) {
 		if (downOnSide) {
 			int barSize = getBarLength(height-THICKNESS, size_y);
 			int totalLength = getTotalLength(height, barSize);
 			p1 = downP + ((float)(abs_y - downAt) / totalLength);
 			if (p1 < 0) p1 = 0;
 			else if (p1 > 1) p1 = 1;
-			mouseUsedBy = this;
 		}
 		else if (downOnBottom) {
 			int barSize = getBarLength(width-THICKNESS, size_x);
@@ -1586,10 +1620,9 @@ public:
 			p2 = downP + ((float)(abs_x - downAt) / totalLength);
 			if (p2 < 0) p2 = 0;
 			else if (p2 > 1) p2 = 1;
-			mouseUsedBy = this;
 		}
 		else if (rel_x >= 0 && child) {
-			if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) && mouseUsedBy == this) {
+			if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) && down) {
 				// move
 				int diff_x = rel_x - start_x;
 				int diff_y = rel_y - start_y;
@@ -1604,17 +1637,13 @@ public:
 
 				start_x = rel_x;
 				start_y = rel_y;
-				mouseUsedBy = this;
 			}
 			else {
 				int cx = rel_x + getOffsetX();
 				int cy = rel_y + getOffsetY();
 				child->mouseMove(cx, cy, abs_x, abs_y);
-				mouseUsedBy = child;
 			}
 		}
-
-		return mouseUsedBy;
 	}
 
 	virtual void mouseDown(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
@@ -1628,14 +1657,13 @@ public:
 				downP = p1;
 			}
 			else if (rel_y >= bpos) {
-				p1 += (float)barSize/height;
+				p1 += (float)barSize/totalLength;
 				if (p1 > 1) p1 = 1;
 			}
 			else {
-				p1 -= (float)barSize/height;
+				p1 -= (float)barSize/totalLength;
 				if (p1 < 0) p1 = 0;
 			}
-			mouseUsedBy = this;
 		}
 		else if (rel_y > (height-THICKNESS)) {
 			int barSize = getBarLength(width-THICKNESS, size_x);
@@ -1647,100 +1675,43 @@ public:
 				downP = p2;
 			}
 			else if (rel_x >= bpos) {
-				p2 += (float)barSize/width;
+				p2 += (float)barSize/totalLength;
 				if (p2 > 1) p2 = 1;
 			}
 			else {
-				p2 -= (float)barSize/width;
+				p2 -= (float)barSize/totalLength;
 				if (p2 < 0) p2 = 0;
 			}
-			mouseUsedBy = this;
 		}
 		else if (rel_x >= 0 && child) {
-         if(tgui::isKeyDown(ALLEGRO_KEY_LCTRL)) {
-            start_x = rel_x;
-            start_y = rel_y;
-            mouseUsedBy = this;
-         }
-         else {
-            int cx = rel_x + getOffsetX();
-            int cy = rel_y + getOffsetY();
-            child->mouseDown(cx, cy, abs_x, abs_y, mb);
-            mouseUsedBy = child;
-         }
+			if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL)) {
+				down = true;
+				start_x = rel_x;
+				start_y = rel_y;
+			}
+			else {
+				int cx = rel_x + getOffsetX();
+				int cy = rel_y + getOffsetY();
+				child->mouseDown(cx, cy, abs_x, abs_y, mb);
+			}
 		}
 	}
 
 	virtual void mouseUp(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
+		down = false;
 		if (downOnSide || downOnBottom) {
 			downOnSide = downOnBottom = false;
-			mouseUsedBy = this;
 		}
-		else if (rel_x >= 0 && child) {
-         if(tgui::isKeyDown(ALLEGRO_KEY_LCTRL) && mouseUsedBy == this) {
-            // nothing?
-            mouseUsedBy = child;
-         }
-         else {
-            int cx = rel_x + getOffsetX();
-            int cy = rel_y + getOffsetY();
-            child->mouseUp(cx, cy, abs_x, abs_y, mb);
-            mouseUsedBy = child;
-         }
+		else {
+			int cx = rel_x + getOffsetX();
+			int cy = rel_y + getOffsetY();
+			child->mouseUp(cx, cy, abs_x, abs_y, mb);
 		}
 	}
 
-	/*
-	virtual TGUIWidget *chainMouseMove(int rel_x, int rel_y, int abs_x, int abs_y) {
-		mouseMove(rel_x, rel_y, abs_x, abs_y);
-		return mouseUsedBy;
-	}
-	*/
-
-	virtual TGUIWidget *chainMouseDown(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
-		mouseDown(rel_x, rel_y, abs_x, abs_y, mb);
-		return mouseUsedBy;
-	}
-
-	virtual TGUIWidget *chainMouseUp(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
-		mouseUp(rel_x, rel_y, abs_x, abs_y, mb);
-		return mouseUsedBy;
-	}
-
-	virtual void keyDown(int keycode) {
-		int diff_x = 0;
-		int diff_y = 0;
-
-		if(tgui::getFocussedWidget() != this && tgui::getFocussedWidget() != child)
-			return;
-		
-		if(keycode == ALLEGRO_KEY_UP) {
-			diff_y = General::tileSize;
-		}
-		else if(keycode == ALLEGRO_KEY_DOWN) {
-			diff_y = -General::tileSize;
-		}
-		else if(keycode == ALLEGRO_KEY_LEFT) {
-			diff_x = General::tileSize;
-		}
-		else if(keycode == ALLEGRO_KEY_RIGHT) {
-			diff_x = -General::tileSize;
-		} 
-		
-		p2 -= diff_x / width;
-		if (p2 < 0) p2 = 0;
-		else if (p2 > 1) p2 = 1;
-	
-		p1 -= diff_y / height;
-		if (p1 < 0) p1 = 0;
-		else if (p1 > 1) p1 = 1;
-	}
-
-	virtual void chainDraw(void)
+	virtual void draw(int abs_x, int abs_y)
 	{
-		int abs_x, abs_y;
-		tgui::determineAbsolutePosition(this, &abs_x, &abs_y);
-		draw(abs_x, abs_y);
+		draw_self(abs_x, abs_y);
 
 		if (!child)
 			return;
@@ -1762,7 +1733,8 @@ public:
 		troughColor(troughColor),
 		sliderColor(sliderColor),
 		downOnBottom(false),
-		downOnSide(false)
+		downOnSide(false),
+		down(false)
 	{
 		x = y = 0;
 	}
@@ -1777,8 +1749,8 @@ protected:
 	bool downOnSide;
 	int downAt;
 	float downP;
-	TGUIWidget *mouseUsedBy;
-   int start_x, start_y;
+	bool down;
+	int start_x, start_y;
 };
 
 class A_Canvas : public A_Scrollable, public tgui::TGUIWidget {
@@ -2155,9 +2127,7 @@ public:
 			tool = TOOL_MACRO;
 		}
 		else if (keycode == ALLEGRO_KEY_COMMA || keycode == ALLEGRO_KEY_FULLSTOP) {
-			if (tool != TOOL_MARQUEE || marquee_floating)
-				return;
-			if (abs(marquee_x1-marquee_x2) == 0 || abs(marquee_y1-marquee_y2) == 0)
+			if (tool != TOOL_MARQUEE || marquee_floating || !marquee_marked)
 				return;
 			int layer_start;
 			int layer_end;
@@ -2503,14 +2473,8 @@ public:
 					marquee_float_y += dy;
 				}
 				else {
-					if (statusX >= marquee_x1)
-						marquee_x2 = statusX+1;
-					else
-						marquee_x2 = statusX;
-					if (statusY >= marquee_y1)
-						marquee_y2 = statusY+1;
-					else
-						marquee_y2 = statusY;
+					marquee_x2 = statusX;
+					marquee_y2 = statusY;
 				}
 			}
 			else {
@@ -2574,8 +2538,8 @@ public:
 				else {
 					marquee_x1 = xx;
 					marquee_y1 = yy;
-					marquee_x2 = xx+1;
-					marquee_y2 = yy+1;
+					marquee_x2 = xx;
+					marquee_y2 = yy;
 				}
 				down = true;
 				marquee_marked = true;
@@ -2595,6 +2559,9 @@ public:
 				if (tool == TOOL_BRUSH && (sel_w > 1 || sel_h > 1)) {
 					for (int _y = 0; _y < sel_h; _y++) {
 						for (int _x = 0; _x < sel_w; _x++) {
+							if ((xx+_x) >= tiles[0].size() || (yy+_y) >= tiles.size()) {
+								continue;
+							}
 							int tw = al_get_bitmap_width(tileSheets[0]) / (General::tileSize*General::scale);
 							int number = (sel_x+_x) + ((sel_y+_y)*tw);
 							use_tool(tool, xx+_x, yy+_y, layer, number, sheet);
@@ -2878,12 +2845,12 @@ public:
 	void get_marquee(int *x1, int *y1, int *x2, int *y2) {
 		if (x1)
 			*x1 = MAX(0, MIN(marquee_x1, marquee_x2));
-		if (x2)
-			*x2 = MIN(tiles[0].size(), MAX(marquee_x1, marquee_x2));
 		if (y1)
 			*y1 = MAX(0, MIN(marquee_y1, marquee_y2));
+		if (x2)
+			*x2 = MIN(tiles[0].size(), MAX(marquee_x1, marquee_x2)+1);
 		if (y2)
-			*y2 = MIN(tiles.size(), MAX(marquee_y1, marquee_y2));
+			*y2 = MIN(tiles.size(), MAX(marquee_y1, marquee_y2)+1);
 	}
 
 	std::vector< std::vector< std::vector<_Tile> > > get_marquee_buffer() {
