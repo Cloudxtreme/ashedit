@@ -117,6 +117,8 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 	int wt = w / (General::tileSize*General::scale)+2;
 	int ht = h / (General::tileSize*General::scale)+2;
 	int layers = levelEditor->getLayers();
+	int savedx = dx;
+	int savedy = dy;
 
 	std::vector<bool> solids(layers);
 
@@ -248,10 +250,10 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 			levelEditor->get_marquee_float_xy(&x1, &y1);
 			x2 = x1 + paste[0].size();
 			y2 = y1 + paste.size();
-			x1 = xx + (x1 * General::tileSize * General::scale) - ox;
-			y1 = yy + (y1 * General::tileSize * General::scale) - oy;
-			x2 = xx + (x2 * General::tileSize * General::scale) - ox;
-			y2 = yy + (y2 * General::tileSize * General::scale) - oy;
+			x1 = savedx + (x1 * General::tileSize * General::scale) - ox;
+			y1 = savedy + (y1 * General::tileSize * General::scale) - oy;
+			x2 = savedx + (x2 * General::tileSize * General::scale) - ox;
+			y2 = savedy + (y2 * General::tileSize * General::scale) - oy;
 			al_draw_rectangle(
 				x1, y1, x2, y2, c, 1
 			);
@@ -259,10 +261,10 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 		else {
 			levelEditor->get_marquee(&x1, &y1, &x2, &y2);
 			if (x1 >= 0) {
-				x1 = xx + (x1 * General::tileSize * General::scale) - ox;
-				y1 = yy + (y1 * General::tileSize * General::scale) - oy;
-				x2 = xx + (x2 * General::tileSize * General::scale) - ox;
-				y2 = yy + (y2 * General::tileSize * General::scale) - oy;
+				x1 = savedx + (x1 * General::tileSize * General::scale) - ox;
+				y1 = savedy + (y1 * General::tileSize * General::scale) - oy;
+				x2 = savedx + (x2 * General::tileSize * General::scale) - ox;
+				y2 = savedy + (y2 * General::tileSize * General::scale) - oy;
 				al_draw_rectangle(
 					x1, y1, x2, y2, c, 1
 				);

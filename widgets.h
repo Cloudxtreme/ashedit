@@ -2033,14 +2033,29 @@ public:
 		bool using_mover = (tool == TOOL_MOVER);
 		bool using_raiser = (tool == TOOL_RAISER);
 
-		if (marquee_floating) {
-			if (keycode != ALLEGRO_KEY_SPACE) {
-				marquee_floating = false;
-			}
-			else {
-				// FIXME: anchor floating marquee
+		if (marquee_floating && keycode == ALLEGRO_KEY_SPACE) {
+			push_undo();
+			for (int yy = 0; yy < marquee_buffer.size(); yy++) {
+				for (int xx = 0; xx < marquee_buffer[0].size(); xx++) {
+					int layer_start;
+					int layer_end;
+					if (marquee_layer == -1) {
+						layer_start = 0;
+						layer_end = marquee_buffer[0][0].size();
+					}
+					else {
+						layer_start = marquee_layer;
+						layer_end = layer_start+1;
+					}
+					for (int l = layer_start; l < layer_end; l++) {
+						tiles[yy+marquee_float_y][xx+marquee_float_x][l].number = marquee_buffer[yy][xx][marquee_layer == -1 ? l : 0].number;
+						tiles[yy+marquee_float_y][xx+marquee_float_x][l].sheet = marquee_buffer[yy][xx][marquee_layer == -1 ? l : 0].sheet;
+						tiles[yy+marquee_float_y][xx+marquee_float_x][l].solid = marquee_buffer[yy][xx][marquee_layer == -1 ? l : 0].solid;
+					}
+				}
 			}
 		}
+		marquee_floating = false;
 
 		if (keycode == ALLEGRO_KEY_Z) {
 			if ((tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) && (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL))) {
@@ -2122,8 +2137,8 @@ public:
 		else if (keycode == ALLEGRO_KEY_M) {
 			tool = TOOL_MACRO;
 		}
-		else if (keycode == ALLEGRO_KEY_X) {
-			if (tool != TOOL_MARQUEE)
+		else if (keycode == ALLEGRO_KEY_COMMA || keycode == ALLEGRO_KEY_FULLSTOP) {
+			if (tool != TOOL_MARQUEE || marquee_floating)
 				return;
 			if (abs(marquee_x1-marquee_x2) == 0 || abs(marquee_y1-marquee_y2) == 0)
 				return;
@@ -2156,8 +2171,21 @@ public:
 				}
 				marquee_buffer.push_back(r);
 			}
+			if (keycode == ALLEGRO_KEY_FULLSTOP) {
+				// delete stuff from tiles
+				push_undo();
+				for (int yy = y1; yy < y2; yy++) {
+					for (int xx = x1; xx < x2; xx++) {
+						for (int i = layer_start; i < layer_end; i++) {
+							tiles[yy][xx][i].number = -1;
+							tiles[yy][xx][i].sheet = -1;
+							tiles[yy][xx][i].solid = false;
+						}
+					}
+				}
+			}
 		}
-		else if (keycode == ALLEGRO_KEY_P) {
+		else if (keycode == ALLEGRO_KEY_SLASH) {
 			if (marquee_buffer_filled) {
 				marquee_layer = layer;
 				int offsx = ((A_Scrollpane *)parent)->getOffsetX();
@@ -2449,14 +2477,24 @@ public:
 			statusX = rel_x / General::tileSize / General::scale;
 			statusY = rel_y / General::tileSize / General::scale;
 			if (down && tool == TOOL_MARQUEE) {
-				if (statusX >= marquee_x1)
-					marquee_x2 = statusX+1;
-				else
-					marquee_x2 = statusX;
-				if (statusY >= marquee_y1)
-					marquee_y2 = statusY+1;
-				else
-					marquee_y2 = statusY;
+				if (dragging_marquee) {
+					int dx = statusX - marquee_drag_x;
+					int dy = statusY - marquee_drag_y;
+					marquee_drag_x = statusX;
+					marquee_drag_y = statusY;
+					marquee_float_x += dx;
+					marquee_float_y += dy;
+				}
+				else {
+					if (statusX >= marquee_x1)
+						marquee_x2 = statusX+1;
+					else
+						marquee_x2 = statusX;
+					if (statusY >= marquee_y1)
+						marquee_y2 = statusY+1;
+					else
+						marquee_y2 = statusY;
+				}
 			}
 			else {
 				if (down) {
@@ -2511,10 +2549,17 @@ public:
 			int yy = rel_y / General::tileSize / General::scale;
 
 			if (tool == TOOL_MARQUEE) {
-				marquee_x1 = xx;
-				marquee_y1 = yy;
-				marquee_x2 = xx+1;
-				marquee_y2 = yy+1;
+				if (marquee_floating) {
+					dragging_marquee = true;
+					marquee_drag_x = xx;
+					marquee_drag_y = yy;
+				}
+				else {
+					marquee_x1 = xx;
+					marquee_y1 = yy;
+					marquee_x2 = xx+1;
+					marquee_y2 = yy+1;
+				}
 				down = true;
 			}
 			else {
@@ -2551,6 +2596,7 @@ public:
 		if (mb != 1 || !down) return;
       
 		down = false;
+		dragging_marquee = false;
 
 		redoes.clear();
 
@@ -2997,6 +3043,8 @@ protected:
 	int marquee_float_x;
 	int marquee_float_y;
 	bool dragging_marquee;
+	int marquee_drag_x;
+	int marquee_drag_y;
 };
 
 class A_Label : public tgui::TGUIWidget {
