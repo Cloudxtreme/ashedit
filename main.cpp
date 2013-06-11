@@ -259,8 +259,8 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 			);
 		}
 		else {
-			levelEditor->get_marquee(&x1, &y1, &x2, &y2);
-			if (x1 >= 0) {
+			if (levelEditor->is_marquee_marked()) {
+				levelEditor->get_marquee(&x1, &y1, &x2, &y2);
 				x1 = savedx + (x1 * General::tileSize * General::scale) - ox;
 				y1 = savedy + (y1 * General::tileSize * General::scale) - oy;
 				x2 = savedx + (x2 * General::tileSize * General::scale) - ox;
@@ -725,7 +725,11 @@ int main(int argc, char **argv)
 							"Shift-F\n"
 							"R\n"
 							"T\n"
-							"Enter\n",
+							"Enter\n"
+							"Q\n"
+							"Comma\n"
+							"Period\n"
+							"Slash\n",
 							al_color_name("white")
 						);
 						quickRefContent2 = new A_Label(
@@ -748,7 +752,11 @@ int main(int argc, char **argv)
 							"Switch to fill tool (test all layers)\n"
 							"Start/stop recording macro\n"
 							"Toggle current layer drawing\n"
-							"Save as PNG\n",
+							"Save as PNG\n"
+							"Marquee tool\n"
+							"Copy (all layers with Ctrl)\n"
+							"Cut (all layers with Ctrl)\n"
+							"Paste\n",
 							al_color_name("white")
 						);
 						quickRefContent1->setX(5);

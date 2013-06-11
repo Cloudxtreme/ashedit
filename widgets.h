@@ -1589,29 +1589,29 @@ public:
 			mouseUsedBy = this;
 		}
 		else if (rel_x >= 0 && child) {
-         if(tgui::isKeyDown(ALLEGRO_KEY_LCTRL) && mouseUsedBy == this) {
-            // move
-            int diff_x = rel_x - start_x;
-            int diff_y = rel_y - start_y;
-            
-            p2 -= diff_x / width;
-            if (p2 < 0) p2 = 0;
-            else if (p2 > 1) p2 = 1;
-         
-            p1 -= diff_y / height;
-            if (p1 < 0) p1 = 0;
-            else if (p1 > 1) p1 = 1;
-         
-            start_x = rel_x;
-            start_y = rel_y;
-            mouseUsedBy = this;
-         }
-         else {
-            int cx = rel_x + getOffsetX();
-            int cy = rel_y + getOffsetY();
-            child->mouseMove(cx, cy, abs_x, abs_y);
-            mouseUsedBy = child;
-         }
+			if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) && mouseUsedBy == this) {
+				// move
+				int diff_x = rel_x - start_x;
+				int diff_y = rel_y - start_y;
+
+				p2 -= diff_x / width;
+				if (p2 < 0) p2 = 0;
+				else if (p2 > 1) p2 = 1;
+
+				p1 -= diff_y / height;
+				if (p1 < 0) p1 = 0;
+				else if (p1 > 1) p1 = 1;
+
+				start_x = rel_x;
+				start_y = rel_y;
+				mouseUsedBy = this;
+			}
+			else {
+				int cx = rel_x + getOffsetX();
+				int cy = rel_y + getOffsetY();
+				child->mouseMove(cx, cy, abs_x, abs_y);
+				mouseUsedBy = child;
+			}
 		}
 
 		return mouseUsedBy;
@@ -1627,6 +1627,14 @@ public:
 				downAt = abs_y;
 				downP = p1;
 			}
+			else if (rel_y >= bpos) {
+				p1 += (float)barSize/height;
+				if (p1 > 1) p1 = 1;
+			}
+			else {
+				p1 -= (float)barSize/height;
+				if (p1 < 0) p1 = 0;
+			}
 			mouseUsedBy = this;
 		}
 		else if (rel_y > (height-THICKNESS)) {
@@ -1637,6 +1645,14 @@ public:
 				downOnBottom = true;
 				downAt = abs_x;
 				downP = p2;
+			}
+			else if (rel_x >= bpos) {
+				p2 += (float)barSize/width;
+				if (p2 > 1) p2 = 1;
+			}
+			else {
+				p2 -= (float)barSize/width;
+				if (p2 < 0) p2 = 0;
 			}
 			mouseUsedBy = this;
 		}
@@ -2054,6 +2070,7 @@ public:
 					}
 				}
 			}
+			marquee_marked = false;
 		}
 		marquee_floating = false;
 
@@ -2129,7 +2146,7 @@ public:
 		}
 		else if (keycode == ALLEGRO_KEY_Q) {
 			tool = TOOL_MARQUEE;
-			marquee_x1 = -1;
+			marquee_marked = false;
 		}
 		else if (keycode == ALLEGRO_KEY_S) {
 			tool = TOOL_SOLID;
@@ -2146,7 +2163,7 @@ public:
 			int layer_end;
 			if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
 				layer_start = 0;
-				layer_end = tiles.size();
+				layer_end = tiles[0][0].size();
 			}
 			else {
 				layer_start = layer;
@@ -2187,7 +2204,7 @@ public:
 		}
 		else if (keycode == ALLEGRO_KEY_SLASH) {
 			if (marquee_buffer_filled) {
-				marquee_layer = layer;
+				marquee_layer = marquee_buffer[0][0].size() > 1 ? -1 : layer;
 				int offsx = ((A_Scrollpane *)parent)->getOffsetX();
 				int offsy = ((A_Scrollpane *)parent)->getOffsetY();
 				int spw = ((A_Scrollpane *)parent)->getWidth();
@@ -2201,7 +2218,7 @@ public:
 				marquee_float_x = topx / General::tileSize / General::scale;
 				marquee_float_y = topy / General::tileSize / General::scale;
 				marquee_floating = true;
-				marquee_x1 = -1;
+				marquee_marked = false;
 			}
 
 		}
@@ -2561,6 +2578,7 @@ public:
 					marquee_y2 = yy+1;
 				}
 				down = true;
+				marquee_marked = true;
 			}
 			else {
 				push_undo();
@@ -2859,13 +2877,13 @@ public:
 
 	void get_marquee(int *x1, int *y1, int *x2, int *y2) {
 		if (x1)
-			*x1 = MIN(marquee_x1, marquee_x2);
+			*x1 = MAX(0, MIN(marquee_x1, marquee_x2));
 		if (x2)
-			*x2 = MAX(marquee_x1, marquee_x2);
+			*x2 = MIN(tiles[0].size(), MAX(marquee_x1, marquee_x2));
 		if (y1)
-			*y1 = MIN(marquee_y1, marquee_y2);
+			*y1 = MAX(0, MIN(marquee_y1, marquee_y2));
 		if (y2)
-			*y2 = MAX(marquee_y1, marquee_y2);
+			*y2 = MIN(tiles.size(), MAX(marquee_y1, marquee_y2));
 	}
 
 	std::vector< std::vector< std::vector<_Tile> > > get_marquee_buffer() {
@@ -2893,6 +2911,11 @@ public:
 		return marquee_buffer_filled;
 	}
 
+	bool is_marquee_marked()
+	{
+		return marquee_marked;
+	}
+
 	void toggleLayerVisibility(int layer) {
 		visible[layer] = !visible[layer];
 	}
@@ -2912,7 +2935,7 @@ public:
 		recording(false),
 		cloneStartX(-1),
 		ts(ts),
-		marquee_x1(-1),
+		marquee_marked(false),
 		marquee_buffer_filled(false),
 		marquee_floating(false),
 		dragging_marquee(false)
@@ -3036,6 +3059,7 @@ protected:
 	int marquee_y1;
 	int marquee_x2;
 	int marquee_y2;
+	bool marquee_marked;
 	bool marquee_buffer_filled;
 	std::vector< std::vector< std::vector<_Tile> > > marquee_buffer;
 	int marquee_layer;

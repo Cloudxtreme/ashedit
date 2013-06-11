@@ -36,7 +36,7 @@ else(APPLE)
 endif(APPLE)
 
 if(WIN32)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mwindows -static-libgcc -static-libstdc++")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mwindows -static-libgcc -static-libstdc++ -g")
 	set(CMAKE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 endif(WIN32)
 
