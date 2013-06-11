@@ -15,6 +15,7 @@ for each layer
 	for each row
 		for each column
 			32 bits: Tile number
+				> (left->right, top->bottom in tile sheet)
 			8 bits: Sheet number
 			8 bits: Solid (1 or 0)
 
@@ -30,7 +31,7 @@ For Monster RPG 2:
 for each row
 	for each column
 		for each of 4 layers
-			tile index (into previously
-			written tile numbers array)
-		tile solid market 1 byte
+			> tile index (into previously
+			> written tile numbers array)
+		tile solid marker 1 byte
 

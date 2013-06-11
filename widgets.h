@@ -1497,9 +1497,6 @@ public:
 		int len = widgetSize / screens;
 		if (len > widgetSize-1)
 			len = widgetSize-1;
-		/*
-		if (len < 100) len = 100;
-		*/
 		return len;
 	}
 	
