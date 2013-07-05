@@ -30,6 +30,25 @@ public:
 
 class A_Splitter_Panel : public tgui::TGUIWidget {
 public:
+	bool getAbsoluteChildPosition(tgui::TGUIWidget *widget, int *x, int *y)
+	{
+		if (child == widget) {
+			int xx, yy;
+			tgui::determineAbsolutePosition(this, &xx, &yy);
+			*x = xx;
+			*y = yy;
+			return true;
+		}
+
+		int xx, yy;
+
+		if (child->getAbsoluteChildPosition(widget, x, y)) {
+			return true;
+		}
+
+		return false;
+	}
+
 	virtual void translate(int xx, int yy) {
 	}
 
@@ -96,8 +115,47 @@ public:
 	static const int SPLIT_HORIZONTAL = 0;
 	static const int SPLIT_VERTICAL = 1;
 
+	bool getAbsoluteChildPosition(tgui::TGUIWidget *widget, int *x, int *y)
+	{
+		if (first_pane == widget || second_pane == widget) {
+			int own_x, own_y;
+			tgui::determineAbsolutePosition(this, &own_x, &own_y);
+
+			int xx, yy;
+
+			if (first_pane == widget) {
+				*x = own_x + first_pane->getX();
+				*y = own_y + first_pane->getY();
+			}
+			else {
+				if (split_type == SPLIT_HORIZONTAL) {
+					xx = 0;
+					yy = first_pixels+4;
+				}
+				else {
+					xx = first_pixels+4;
+					yy = 0;
+				}
+				*x = own_x + xx + second_pane->getX();
+				*y = own_y + yy + second_pane->getY();
+			}
+
+			return true;
+		}
+
+		int xx, yy;
+
+		if (first_pane->getAbsoluteChildPosition(widget, x, y)) {
+			return true;
+		}
+		if (second_pane->getAbsoluteChildPosition(widget, x, y)) {
+			return true;
+		}
+
+		return false;
+	}
+
 	virtual void chainKeyDown(int chainKeycode) {
-		printf("HERE\n");
 		if (first_pane) {
 			first_pane->chainKeyDown(chainKeycode);
 		}
@@ -153,16 +211,14 @@ public:
 	}
 
 	virtual void draw(int abs_x, int abs_y) {
+		int xx, yy;
 		if (first_pane) {
-			first_pane->draw(abs_x, abs_y);
+			determineAbsolutePosition(first_pane, &xx, &yy);
+			first_pane->draw(xx, yy);
 		}
 		if (second_pane) {
-			if (split_type == SPLIT_HORIZONTAL) {
-				second_pane->draw(abs_x, abs_y+first_pixels+4);
-			}
-			else {
-				second_pane->draw(abs_x+first_pixels+4, abs_y);
-			}
+			determineAbsolutePosition(second_pane, &xx, &yy);
+			second_pane->draw(xx, yy);
 		}
 
 		if (!resizable) return;
@@ -543,15 +599,18 @@ protected:
 			}
 		}
 		else {
+			*xx = 0;
+			*yy = 0;
+
 			if (split_type == SPLIT_HORIZONTAL) {
-				*xx = 0;
-				*yy = first_pixels+4;
+				//*xx = 0;
+				//*yy = first_pixels+4;
 				*w = width;
 				*h = second_pixels;
 			}
 			else {
-				*xx = first_pixels+4;
-				*yy = 0;
+				//*xx = first_pixels+4;
+				//*yy = 0;
 				*w = second_pixels;
 				*h = height;
 			}
@@ -603,6 +662,25 @@ protected:
 class A_Frame : public tgui::TGUIWidget {
 public:
 	static const int PADDING = 5;
+
+	bool getAbsoluteChildPosition(tgui::TGUIWidget *widget, int *x, int *y)
+	{
+		if (child == widget) {
+			int xx, yy;
+			tgui::determineAbsolutePosition(this, &xx, &yy);
+			*x = xx;
+			*y = yy;
+			return true;
+		}
+
+		int xx, yy;
+
+		if (child->getAbsoluteChildPosition(widget, x, y)) {
+			return true;
+		}
+
+		return false;
+	}
 
 	virtual void translate(int xx, int yy) {
 		x += xx;
@@ -1485,6 +1563,25 @@ public:
 class A_Scrollpane : public tgui::TGUIWidget {
 public:
 	static const int THICKNESS = 20;
+
+	bool getAbsoluteChildPosition(tgui::TGUIWidget *widget, int *x, int *y)
+	{
+		if (child == widget) {
+			int xx, yy;
+			tgui::determineAbsolutePosition(this, &xx, &yy);
+			*x = xx;
+			*y = yy;
+			return true;
+		}
+
+		int xx, yy;
+
+		if (child->getAbsoluteChildPosition(widget, x, y)) {
+			return true;
+		}
+
+		return false;
+	}
 
 	int getBarLength(int widgetSize, int scrollSize) {
 		if (widgetSize > scrollSize)
