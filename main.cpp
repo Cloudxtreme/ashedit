@@ -434,7 +434,7 @@ int main(int argc, char **argv)
 	al_init_primitives_addon();
 
 	al_set_new_display_flags(ALLEGRO_RESIZABLE);
-	display = al_create_display(800, 600);
+	display = al_create_display(800, 500);
 	ALLEGRO_FONT *font = al_load_ttf_font("DejaVuSans.ttf", 12, 0);
 	queue = al_create_event_queue();
 	ALLEGRO_TIMER *draw_timer = al_create_timer(1.0/20.0);
@@ -576,6 +576,7 @@ int main(int argc, char **argv)
 				draw_ticks++;
 			}
 			else if (event.type == ALLEGRO_EVENT_DISPLAY_RESIZE) {
+				menubar->mouseDown(-1, -1, 0, 0, 1);
 				al_acknowledge_resize(event.display.source);
 				resize = true;
 				draw();
