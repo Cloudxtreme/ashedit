@@ -435,6 +435,14 @@ int main(int argc, char **argv)
 
 	al_set_new_display_flags(ALLEGRO_RESIZABLE);
 	display = al_create_display(800, 500);
+	/*
+	int flags = al_get_new_bitmap_flags();
+	al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP);
+	ALLEGRO_BITMAP *icon_bmp = al_load_bitmap("icon.png");
+	al_set_display_icon(display, icon_bmp);
+	al_destroy_bitmap(icon_bmp);
+	al_set_new_bitmap_flags(flags);
+	*/
 	ALLEGRO_FONT *font = al_load_ttf_font("DejaVuSans.ttf", 12, 0);
 	queue = al_create_event_queue();
 	ALLEGRO_TIMER *draw_timer = al_create_timer(1.0/20.0);

@@ -2433,7 +2433,7 @@ public:
 					p = stack.top();
 					stack.pop();
 
-					fill(number, sheet, l, p.x, p.y, tile_num, tile_sheet, stack, fill_all);
+					fill(x, y, l, p.x, p.y, tile_num, tile_sheet, stack, fill_all);
 				}
 				break;
 			}
@@ -3019,7 +3019,20 @@ protected:
 		return p;
 	}
 	
-	void fill(int new_tile, int new_sheet, int layer, int x, int y, int tile_num, int tile_sheet, std::stack<Point> &stack, bool check_all_layers) {
+	void fill(int firstx, int firsty, int layer, int x, int y, int tile_num, int tile_sheet, std::stack<Point> &stack, bool check_all_layers) {
+		int sel_x, sel_y, sel_w, sel_h;
+		ts->getSelected(&sel_x, &sel_y, &sel_w, &sel_h);
+		int dx = x - firstx;
+		int dy = y - firsty;
+		dx %= sel_w;
+		dy %= sel_h;
+		if (dx < 0) dx = sel_w + dx;
+		if (dy < 0) dy = sel_h + dy;
+
+		int tw = al_get_bitmap_width(tileSheets[0]) / (General::tileSize*General::scale);
+		int new_tile = (sel_x+dx) + ((sel_y+dy)*tw);
+		int new_sheet = sheet;
+
 		Point neighbors_unclipped[4];
 		neighbors_unclipped[0] = mkpoint(x-1, y);
 		neighbors_unclipped[1] = mkpoint(x+1, y);
