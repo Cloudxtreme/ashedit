@@ -31,7 +31,8 @@ A_Splitter *quickRefBottomSplitter;
 A_Label *quickRefContent1, *quickRefContent2;
 A_Titlebar *quickRefTitlebar;
 
-static void setTitle(void) {
+void setTitle()
+{
 	std::string filename = levelEditor->getOperatingFilename();
 	if (filename == "") {
 		al_set_window_title(display, "AshEdit2");

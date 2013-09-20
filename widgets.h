@@ -17,7 +17,9 @@
 #include "general.h"
 
 extern ALLEGRO_DISPLAY *display;
+extern ALLEGRO_EVENT_QUEUE *queue;
 extern std::vector<ALLEGRO_BITMAP *> tileSheets;
+void setTitle();
 
 struct Point {
 	float x, y;
@@ -516,8 +518,6 @@ public:
 	A_Splitter_Panel *getSecondPane(void) { return second_pane; }
 
 	void addToFirstPane(TGUIWidget *widget) {
-		first_pane->setChild(widget);
-		widget->setParent(first_pane);
 		TGUIWidget *oldParent = tgui::getNewWidgetParent();
 		tgui::setNewWidgetParent(first_pane);
 		tgui::addWidget(widget);
@@ -542,7 +542,7 @@ public:
 		else if (second_fixed) {
 			setSplitSize(-1, second_pixels);
 		}
-		else if (!first_fixed && !second_fixed) {
+		else {
 			setSplitRatio(ratio, 1.0-ratio);
 		}
 
@@ -928,6 +928,10 @@ typedef void (A_Menu::*A_MenuCloseMethod)(void);
 
 class A_Menuitem : public tgui::TGUIWidget {
 public:
+	virtual void resize(void) {
+		/* DO NOTHING */
+	}
+
 	virtual void mouseMove(int rel_x, int rel_y, int abs_x, int abs_y) {
 		if (rel_x >= 0)
 			highlighted = true;
@@ -1037,6 +1041,10 @@ protected:
 class A_Menu : public tgui::TGUIWidget {
 public:
 	static const int PADDING = 5;
+	
+	virtual void resize(void) {
+		// DO NOTHING
+	}
 
 	virtual void draw(int abs_x, int abs_y) {
 		al_draw_filled_rectangle(
@@ -2140,7 +2148,14 @@ public:
 		}
 		marquee_floating = false;
 
-		if (keycode == ALLEGRO_KEY_Z) {
+		if (keycode == ALLEGRO_KEY_S) {
+			if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
+				save(false);
+				setTitle();
+				al_flush_event_queue(queue);
+			}
+		}
+		else if (keycode == ALLEGRO_KEY_Z) {
 			if ((tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) && (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL))) {
 				doRedo();
 			}
@@ -2878,6 +2893,15 @@ public:
 
 		al_fclose(f);
 #endif
+
+		al_show_native_message_box(
+			display,
+			"Saved",
+			"",
+			"The level has been saved.",
+			"OK",
+			0
+		);
 	}
 
 	void load(void) {
