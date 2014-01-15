@@ -435,7 +435,7 @@ int main(int argc, char **argv)
 	al_init_primitives_addon();
 
 	al_set_new_display_flags(ALLEGRO_RESIZABLE);
-	display = al_create_display(800, 500);
+	display = al_create_display(1200, 640);
 	/*
 	int flags = al_get_new_bitmap_flags();
 	al_set_new_bitmap_flags(ALLEGRO_MEMORY_BITMAP);
