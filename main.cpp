@@ -434,6 +434,8 @@ int main(int argc, char **argv)
 	al_init_ttf_addon();
 	al_init_primitives_addon();
 
+        al_init_user_event_source(&evtsrc);
+ 
 	al_set_new_display_flags(ALLEGRO_RESIZABLE);
 	display = al_create_display(1200, 640);
 	/*
@@ -446,6 +448,9 @@ int main(int argc, char **argv)
 	*/
 	ALLEGRO_FONT *font = al_load_ttf_font("DejaVuSans.ttf", 12, 0);
 	queue = al_create_event_queue();
+
+	al_register_event_source(queue, &evtsrc);
+
 	ALLEGRO_TIMER *draw_timer = al_create_timer(1.0/20.0);
 	al_start_timer(draw_timer);
 
@@ -461,8 +466,6 @@ int main(int argc, char **argv)
 	tgui::init(display);
 	tgui::setFont(font);
 	
-	al_register_event_source(queue, tgui::getEventSource());
-
 	A_Splitter *mainSplitTop = new A_Splitter(A_Splitter::SPLIT_HORIZONTAL);
 	A_Splitter *mainSplitBottom= new A_Splitter(A_Splitter::SPLIT_HORIZONTAL);
 	A_Splitter *canvasSplit = new A_Splitter(A_Splitter::SPLIT_VERTICAL);
@@ -657,7 +660,7 @@ int main(int argc, char **argv)
 			else if (event.type == ALLEGRO_GET_EVENT_TYPE('T', 'G', 'U', 'I')) {
 				ALLEGRO_USER_EVENT *u = (ALLEGRO_USER_EVENT *)&event;
 				int type = (int)u->data1;
-				if (type == tgui::TGUI_EVENT_OBJECT) {
+				if (type == TGUI_EVENT_OBJECT) {
 					tgui::TGUIWidget *widget = (tgui::TGUIWidget *)u->data2;
 					if (widget == fileOpen) {
 						levelEditor->load();

@@ -836,7 +836,7 @@ public:
 				(rel_y >= 2) &&
 				(rel_y < CLOSE_BUTTON_SIZE+2)
 			) {
-				tgui::pushEvent(tgui::TGUI_EVENT_OBJECT, (void *)this);
+				pushEvent(TGUI_EVENT_OBJECT, (void *)this);
 				return;
 			}
 			down = true;
@@ -941,7 +941,7 @@ public:
 
 	virtual void mouseDown(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
 		if (rel_x >= 0 && mb == 1) {
-			tgui::pushEvent(tgui::TGUI_EVENT_OBJECT, (void *)this);
+			pushEvent(TGUI_EVENT_OBJECT, (void *)this);
 			((*menu).*(closeMethod))();
 		}
 	}
@@ -2154,6 +2154,9 @@ public:
 				setTitle();
 				al_flush_event_queue(queue);
 			}
+			else {
+				tool = TOOL_SOLID;
+			}
 		}
 		else if (keycode == ALLEGRO_KEY_Z) {
 			if ((tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) && (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL))) {
@@ -2228,9 +2231,6 @@ public:
 		else if (keycode == ALLEGRO_KEY_Q) {
 			tool = TOOL_MARQUEE;
 			marquee_marked = false;
-		}
-		else if (keycode == ALLEGRO_KEY_S) {
-			tool = TOOL_SOLID;
 		}
 		else if (keycode == ALLEGRO_KEY_M) {
 			tool = TOOL_MACRO;

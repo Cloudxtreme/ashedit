@@ -31,7 +31,7 @@ SET(EXTRA_LIBS ${IOKIT_LIBRARY} ${OPENGL_LIBRARY} ${FOUNDATION_LIBRARY} ${APPSER
 target_link_libraries(ashedit2 ${EXTRA_LIBS} allegro_image${ALLEG_SUFFIX} allegro_ttf${ALLEG_SUFFIX} allegro_font${ALLEG_SUFFIX} allegro_primitives${ALLEG_SUFFIX} allegro_color${ALLEG_SUFFIX} allegro_dialog${ALLEG_SUFFIX} allegro${ALLEG_SUFFIX} allegro_main${ALLEG_SUFFIX} allegro_memfile${ALLEG_SUFFIX} png jpeg)
 else(APPLE)
   if(WIN32)
-    target_link_libraries(ashedit2 allegro_image${ALLEG_SUFFIX} allegro_ttf${ALLEG_SUFFIX} allegro_font${ALLEG_SUFFIX} allegro_primitives${ALLEG_SUFFIX} allegro_color${ALLEG_SUFFIX} allegro_dialog${ALLEG_SUFFIX} allegro${ALLEG_SUFFIX} allegro_main${ALLEG_SUFFIX} allegro_memfile${ALLEG_SUFFIX} "opengl32" "dxguid" "dinput8" "dsound" "d3d9" "kernel32" "user32" "gdi32" "comdlg32" "ole32" "winmm" "psapi" "gdiplus" "uuid" "shlwapi" "opengl32" "freetype" "zlibstatic" "tgui2")
+    target_link_libraries(ashedit2 allegro_image${ALLEG_SUFFIX} allegro_ttf${ALLEG_SUFFIX} allegro_font${ALLEG_SUFFIX} allegro_primitives${ALLEG_SUFFIX} allegro_color${ALLEG_SUFFIX} allegro_dialog${ALLEG_SUFFIX} allegro${ALLEG_SUFFIX} allegro_main${ALLEG_SUFFIX} allegro_memfile${ALLEG_SUFFIX} "opengl32" "dxguid" "dinput8" "dsound" "d3d9" "kernel32" "user32" "gdi32" "comdlg32" "ole32" "winmm" "psapi" "gdiplus" "uuid" "shlwapi" "opengl32" "freetype" "z" "tgui2")
   else(WIN32)
     target_link_libraries(ashedit2 allegro_image${ALLEG_SUFFIX} allegro_ttf${ALLEG_SUFFIX} allegro_font${ALLEG_SUFFIX} allegro_primitives${ALLEG_SUFFIX} allegro_color${ALLEG_SUFFIX} allegro_dialog${ALLEG_SUFFIX} allegro${ALLEG_SUFFIX} allegro_main${ALLEG_SUFFIX} allegro_memfile${ALLEG_SUFFIX} freetype z tgui2 m pthread SM ICE X11 Xext Xcursor Xinerama Xrandr Xpm GL GLU)
   endif(WIN32)
