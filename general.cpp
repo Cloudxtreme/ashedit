@@ -1,3 +1,5 @@
+#define ALLEGRO_STATICLINK
+
 #include "general.h"
 
 int General::areaSize = 20;
