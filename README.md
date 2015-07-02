@@ -11,7 +11,7 @@ Building
 
 AshEdit requires tgui2 to build. See http://github.com/Nooskewl/tgui2. Allegro 5.1 is also needed.
 
-Set CMake variables USER_INCLUDE_PATH and USER_LIBRARY_PATH as necessary (for Allegro etc. if necessary.)
+Set CMake variables USER_INCLUDE_PATH and USER_LIBRARY_PATH to where you've put Allegro and TGUI2 if necessary.
 
 mkdir build
 cd build
