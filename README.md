@@ -1,4 +1,4 @@
-AshEdit is a tile-based level editor used for Crystal Picnic and Monster RPG 2.
+AshEdit is a tile-based level editor used for Crystal Picnic and Monster RPG 2. It was originally written for an unreleased game called Ashes Fall, hence the name.
 
 Requires tgui2 to build. See http://github.com/Nooskewl/tgui2
 
