@@ -23,8 +23,11 @@ static A_Leveleditor *levelEditor;
 static bool draw_yellow_and_purple = true;
 static A_Scrollpane *levelScrollpane;
 static int levelX = -1, levelY = -1;
+static A_Scrollpane *tileScrollpane;
 
 static int mouse_x = 0, mouse_y = 0;
+
+static std::string tile_load_path = "";
 
 /* Quick reference window stuff
  */
@@ -63,7 +66,7 @@ static void tileDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int l
 
 	ALLEGRO_BITMAP *sheet = 0;
 	
-	if(!tileSheets.size() || sheetCombo->getSelected() > (int)tileSheets.size())
+	if (!tileSheets.size() || sheetCombo->getSelected() > (int)tileSheets.size())
 		return;
 	
 	sheet = tileSheets[sheetCombo->getSelected()];
@@ -363,7 +366,7 @@ bool tilesSort(ALLEGRO_PATH *a, ALLEGRO_PATH *b)
 void loadTileSheets(const char *path)
 {
 	ALLEGRO_FS_ENTRY *path_entry = al_create_fs_entry(path);
-	if(!al_open_directory(path_entry)) {
+	if (!al_open_directory(path_entry)) {
 		fprintf(stderr, "failed to list directory '%s': %s\n", path, strerror(errno));
 		return;
 	}
@@ -374,19 +377,19 @@ void loadTileSheets(const char *path)
 		const char *ent_path = al_get_fs_entry_name(ent);
 		
 		ALLEGRO_PATH *path = al_create_path(ent_path);
-		if(!path) {
+		if (!path) {
 			fprintf(stderr, "failed to create path object for loading tile sheet '%s': %s\n", ent_path, strerror(errno));
 			continue;
 		}
 		
 		const char *ent_name = al_get_path_filename(path);
-		if(ent_name[0] == '.') continue; // skip hidden files, the parent ref, and self ref entries
+		if (ent_name[0] == '.') continue; // skip hidden files, the parent ref, and self ref entries
 		
 		const char *ent_ext = al_get_path_extension(path);
 #ifdef USE_TGA
-		if(strcmp(ent_ext, ".tga") == 0 && strncmp(ent_name, "tiles", 5) == 0) {
+		if (strcmp(ent_ext, ".tga") == 0 && strncmp(ent_name, "tiles", 5) == 0) {
 #else
-		if(strcmp(ent_ext, ".png") == 0 && strncmp(ent_name, "tiles", 5) == 0) {
+		if (strcmp(ent_ext, ".png") == 0 && strncmp(ent_name, "tiles", 5) == 0) {
 #endif
 			items.push_back(path);
 		}
@@ -427,6 +430,18 @@ void loadTileSheets(const char *path)
 		char buf[20];
 		sprintf(buf, "Sheet %d", i);
 		sheetCombo->addValue(std::string(buf));
+	}
+}
+
+static void reloadTiles()
+{
+	loadTileSheets(tile_load_path.c_str());
+
+	if (tileSheets.size()) {
+		tileScrollpane->setScrollSize(
+			al_get_bitmap_width(tileSheets[0]),
+			al_get_bitmap_height(tileSheets[0])
+		);
 	}
 }
 
@@ -485,6 +500,7 @@ int main(int argc, char **argv)
 	A_Menubar *menubar = new A_Menubar();
 	A_Menu *fileMenu = new A_Menu("File");
 	A_Menu *editMenu = new A_Menu("Edit");
+	A_Menu *scaleMenu = new A_Menu("Scale");
 	A_Menu *helpMenu = new A_Menu("Help");
 	A_Menuitem *fileOpen = new A_Menuitem("Open...");
 	A_Menuitem *fileLoadTiles = new A_Menuitem("Load Tiles...");
@@ -493,9 +509,14 @@ int main(int argc, char **argv)
 	A_Menuitem *fileSimulate = new A_Menuitem("Simulate");
 	A_Menuitem *editUndo = new A_Menuitem("Undo   Ctrl-Z");
 	A_Menuitem *editRedo = new A_Menuitem("Redo   Ctrl-Shift-Z");
+	A_Menuitem *scale1x = new A_Menuitem("1x");
+	A_Menuitem *scale2x = new A_Menuitem("2x");
+	A_Menuitem *scale3x = new A_Menuitem("3x");
+	A_Menuitem *scale4x = new A_Menuitem("4x");
 	A_Menuitem *helpQuickRef = new A_Menuitem("Quick Reference");
 	menubar->addMenu(fileMenu);
 	menubar->addMenu(editMenu);
+	menubar->addMenu(scaleMenu);
 	menubar->addMenu(helpMenu);
 	fileMenu->addMenuitem(fileOpen);
 	fileMenu->addMenuitem(fileSave);
@@ -504,6 +525,10 @@ int main(int argc, char **argv)
 	fileMenu->addMenuitem(fileLoadTiles);
 	editMenu->addMenuitem(editUndo);
 	editMenu->addMenuitem(editRedo);
+	scaleMenu->addMenuitem(scale1x);
+	scaleMenu->addMenuitem(scale2x);
+	scaleMenu->addMenuitem(scale3x);
+	scaleMenu->addMenuitem(scale4x);
 	helpMenu->addMenuitem(helpQuickRef);
 
 	layerCombo = new A_Combobox(
@@ -535,7 +560,7 @@ int main(int argc, char **argv)
 		al_color_name("gray"),
 		al_color_name("lightgrey")
 	);
-	A_Scrollpane *tileScrollpane = new A_Scrollpane(
+	tileScrollpane = new A_Scrollpane(
 		al_color_name("gray"),
 		al_color_name("lightgrey")
 	);
@@ -607,7 +632,7 @@ int main(int argc, char **argv)
 				event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
 				
 				int ret = al_show_native_message_box(display, "Confirm Exit", "Really?", "Seriously?", 0, ALLEGRO_MESSAGEBOX_YES_NO);
-				if(ret == 1) {
+				if (ret == 1) {
 					goto done;
 				}
 			}
@@ -656,10 +681,10 @@ int main(int argc, char **argv)
                    event.keyboard.keycode <= ALLEGRO_KEY_F12))
          {
             int layer = (event.keyboard.keycode - ALLEGRO_KEY_F1);
-            if(layer < 0 || layer >= levelEditor->getNumLayers())
+            if (layer < 0 || layer >= levelEditor->getNumLayers())
                continue;
             
-            if(levelEditor->getLayer() != layer) {
+            if (levelEditor->getLayer() != layer) {
                levelEditor->setLayer(layer);
                layerCombo->setSelected(layer);
             } else {
@@ -688,10 +713,10 @@ int main(int argc, char **argv)
 					}
 					else if (widget == fileLoadTiles) {
 						const char *start = argc > 1 ? argv[1] : al_get_current_directory();
-						std::string load_path = selectDir(start);
-						loadTileSheets(load_path.c_str());
+						tile_load_path = selectDir(start);
+						loadTileSheets(tile_load_path.c_str());
 						
-						if(tileSheets.size()) {
+						if (tileSheets.size()) {
 							tileScrollpane->setScrollSize(
 								al_get_bitmap_width(tileSheets[0]),
 								al_get_bitmap_height(tileSheets[0])
@@ -703,6 +728,26 @@ int main(int argc, char **argv)
 					}
 					else if (widget == editRedo) {
 						levelEditor->doRedo();
+					}
+					else if (widget == scale1x) {
+						General::scale = 1;
+						levelEditor->resizeScrollpane();
+						reloadTiles();
+					}
+					else if (widget == scale2x) {
+						General::scale = 2;
+						levelEditor->resizeScrollpane();
+						reloadTiles();
+					}
+					else if (widget == scale3x) {
+						General::scale = 3;
+						levelEditor->resizeScrollpane();
+						reloadTiles();
+					}
+					else if (widget == scale4x) {
+						General::scale = 4;
+						levelEditor->resizeScrollpane();
+						reloadTiles();
 					}
 					else if (widget && widget == quickRefTitlebar) {
 						quickRefFrame->remove();
@@ -828,7 +873,7 @@ int main(int argc, char **argv)
 				tileSelector->getSelected(&tileX, &tileY, NULL, NULL);
 				
 				int tileNumber = 0;
-				if(tileSheets.size()) {
+				if (tileSheets.size()) {
 					levelEditor->setTile(tileY*(al_get_bitmap_width(tileSheets[0])/(General::tileSize*General::scale))+tileX);
 					levelEditor->setSheet(sheetCombo->getSelected());
 					tileNumber = tileY*(al_get_bitmap_width(tileSheets[0])/(General::tileSize*General::scale))+tileX;
