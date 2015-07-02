@@ -12,7 +12,7 @@ int General::tileSize = 16;
 
 int General::startLayers = 4;
 bool General::can_add_and_delete_layers = true;
-int General::scale = 2;
+int General::scale = SCALE;
 
 ALLEGRO_EVENT_SOURCE evtsrc;
 
