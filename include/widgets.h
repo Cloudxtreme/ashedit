@@ -2432,7 +2432,11 @@ public:
 				tiles[y][x][l].sheet = -1;
 				break;
 			case TOOL_SOLID:
-				tiles[y][x][l].solid = !tiles[y][x][l].solid;
+				if ((last_solid_x == -1 && last_solid_y == -1) || (last_solid_x != x || last_solid_y != y)) {
+					tiles[y][x][l].solid = !tiles[y][x][l].solid;
+					last_solid_x = x;
+					last_solid_y = y;
+				}
 				break;
 			case TOOL_FILL_ALL:
 				fill_all = true;
@@ -2662,6 +2666,11 @@ public:
 					cloneStartX = statusX;
 					cloneStartY = statusY;
 					ts->getSelected(&cloneTileX, &cloneTileY, NULL, NULL);
+				}
+
+				if (tool == TOOL_SOLID) {
+					last_solid_x = -1;
+					last_solid_y = -1;
 				}
 
 				int sel_x, sel_y, sel_w, sel_h;
@@ -3169,6 +3178,8 @@ protected:
 	bool dragging_marquee;
 	int marquee_drag_x;
 	int marquee_drag_y;
+	int last_solid_x;
+	int last_solid_y;
 };
 
 class A_Label : public tgui::TGUIWidget {
