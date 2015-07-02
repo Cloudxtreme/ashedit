@@ -2393,8 +2393,10 @@ public:
 		if (undoes.size() <= 0) return;
 
 		push_redo();
-		tiles = undoes[undoes.size()-1];
-		undoes.erase(undoes.end());
+
+		std::vector<Lvl>::iterator it = undoes.end() - 1;
+		tiles = *it;
+		undoes.erase(it);
 	}
 	
 	void doRedo(void) {
