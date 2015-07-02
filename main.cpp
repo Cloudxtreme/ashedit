@@ -38,10 +38,10 @@ void setTitle()
 {
 	std::string filename = levelEditor->getOperatingFilename();
 	if (filename == "") {
-		al_set_window_title(display, "AshEdit2");
+		al_set_window_title(display, "AshEdit");
 	}
 	else {
-		std::string name = std::string("AshEdit2") + " - " + filename;
+		std::string name = std::string("AshEdit") + " - " + filename;
 		al_set_window_title(display, name.c_str());
 	}
 }

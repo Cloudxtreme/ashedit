@@ -4,7 +4,12 @@
 
 int General::areaSize = 20;
 
+#ifdef USE_8X8
+int General::tileSize = 8;
+#else
 int General::tileSize = 16;
+#endif
+
 int General::startLayers = 4;
 bool General::can_add_and_delete_layers = true;
 int General::scale = 2;
