@@ -2415,8 +2415,8 @@ public:
 			case TOOL_MOVER: {
 				if (mover_dest_layer >= -1 && std::find(already_moved.begin(), already_moved.end(), pr) == already_moved.end() && tiles[y][x][mover_src_layer].number != -1 && tiles[y][x][mover_src_layer].sheet != -1) {
 					already_moved.push_back(pr);
-					tiles[y][x][mover_dest_layer] =
-						tiles[y][x][mover_src_layer];
+					tiles[y][x][mover_dest_layer].number = tiles[y][x][mover_src_layer].number;
+					tiles[y][x][mover_dest_layer].sheet = tiles[y][x][mover_src_layer].sheet;
 					tiles[y][x][mover_src_layer].number = -1;
 					tiles[y][x][mover_src_layer].sheet = -1;
 				}
