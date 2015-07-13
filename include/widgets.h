@@ -1988,6 +1988,7 @@ public:
 		int number;
 		int sheet;
 		bool solid;
+		int x, y;
 	};
 
 	bool getRecording(void) {
@@ -2007,6 +2008,8 @@ public:
 		t.number = -1;
 		t.sheet = -1;
 		t.solid = false;
+		t.x = -1;
+		t.y = -1;
 		return t;
 	}
 
@@ -2260,6 +2263,8 @@ public:
 					for (int i = layer_start; i < layer_end; i++) {
 						_Tile t;
 						t.number = tiles[yy][xx][i].number;
+						t.x = tiles[yy][xx][i].x;
+						t.y = tiles[yy][xx][i].y;
 						t.sheet = tiles[yy][xx][i].sheet;
 						t.solid = tiles[yy][xx][i].solid;
 						changed = true;
@@ -2276,6 +2281,8 @@ public:
 					for (int xx = x1; xx < x2; xx++) {
 						for (int i = layer_start; i < layer_end; i++) {
 							tiles[yy][xx][i].number = -1;
+							tiles[yy][xx][i].x = -1;
+							tiles[yy][xx][i].y = -1;
 							tiles[yy][xx][i].sheet = -1;
 							tiles[yy][xx][i].solid = false;
 							changed = true;
@@ -2419,6 +2426,8 @@ public:
 				if (mover_dest_layer >= -1 && std::find(already_moved.begin(), already_moved.end(), pr) == already_moved.end() && tiles[y][x][mover_src_layer].number != -1 && tiles[y][x][mover_src_layer].sheet != -1) {
 					already_moved.push_back(pr);
 					tiles[y][x][mover_dest_layer].number = tiles[y][x][mover_src_layer].number;
+					tiles[y][x][mover_dest_layer].x = tiles[y][x][mover_src_layer].x;
+					tiles[y][x][mover_dest_layer].y = tiles[y][x][mover_src_layer].y;
 					tiles[y][x][mover_dest_layer].sheet = tiles[y][x][mover_src_layer].sheet;
 					tiles[y][x][mover_src_layer].number = -1;
 					tiles[y][x][mover_src_layer].sheet = -1;
@@ -2427,13 +2436,19 @@ public:
 				break;
 			}
 			case TOOL_CLONE:
-			case TOOL_BRUSH:
+			case TOOL_BRUSH: {
 				tiles[y][x][l].number = number;
+				int tw = al_get_bitmap_width(tileSheets[0]) / (General::tileSize*General::scale);
+				tiles[y][x][l].x = number % tw;
+				tiles[y][x][l].y = number / tw;
 				tiles[y][x][l].sheet = sheet;
 				changed = true;
 				break;
+			}
 			case TOOL_CLEAR:
 				tiles[y][x][l].number = -1;
+				tiles[y][x][l].x = -1;
+				tiles[y][x][l].y = -1;
 				tiles[y][x][l].sheet = -1;
 				changed = true;
 				break;
@@ -2483,9 +2498,14 @@ public:
 					int s = tiles[y][x][i].sheet;
 
 					tiles[y][x][i].number = -1;
+					tiles[y][x][i].x = -1;
+					tiles[y][x][i].y = -1;
 					tiles[y][x][i].sheet = -1;
 
 					tiles[y][x][l].number = n;
+					int tw = al_get_bitmap_width(tileSheets[0]) / (General::tileSize*General::scale);
+					tiles[y][x][l].x = n % tw;
+					tiles[y][x][l].y = n / tw;
 					tiles[y][x][l].sheet = s;
 
 					changed = true;
@@ -2810,7 +2830,15 @@ public:
 			for (unsigned int y = 0; y < tiles.size(); y++) {
 				for (unsigned int x = 0; x < tiles[0].size(); x++) {
 					_Tile &t = tiles[y][x][l];
-					t.number = al_fread16le(f);
+					t.x = al_fgetc(f);
+					t.y = al_fgetc(f);
+					if (tileSheets.size() > 0) {
+						int tw = al_get_bitmap_width(tileSheets[0]) / (General::tileSize*General::scale);
+						t.number = t.x + t.y * tw;
+					}
+					else {
+						t.number = -777;
+					}
 					t.sheet = al_fgetc(f);
 					t.solid = al_fgetc(f);
 				}
@@ -2916,7 +2944,11 @@ public:
 			for (unsigned int y = 0; y < tiles.size(); y++) {
 				for (unsigned int x = 0; x < tiles[0].size(); x++) {
 					_Tile t = tiles[y][x][l];
-					al_fwrite16le(f, t.number);
+					int tw = al_get_bitmap_width(tileSheets[0]) / (General::tileSize*General::scale);
+					int tx = t.number % tw;
+					int ty = t.number / tw;
+					al_fputc(f, tx);
+					al_fputc(f, ty);
 					al_fputc(f, t.sheet);
 					al_fputc(f, t.solid);
 				}
@@ -3068,6 +3100,22 @@ public:
 		return changed;
 	}
 
+	void tilesLoaded() {
+#ifdef MO3
+		if (tileSheets.size() == 0) {
+			return;
+		}
+		int tw = al_get_bitmap_width(tileSheets[0]) / (General::tileSize*General::scale);
+		for (int l = 0; l < layers; l++) {
+			for (unsigned int y = 0; y < tiles.size(); y++) {
+				for (unsigned int x = 0; x < tiles[0].size(); x++) {
+					tiles[y][x][l].number = tiles[y][x][l].x + tiles[y][x][l].y * tw;
+				}
+			}
+		}
+#endif
+	}
+
 	A_Leveleditor(drawCallback callback, int layers, A_Tileselector *ts) :
 		A_Canvas(callback),
 		layers(layers),
@@ -3189,6 +3237,8 @@ protected:
 		
 		_Tile &t = tiles[y][x][layer];
 		t.number = new_tile;
+		t.x = new_tile % tw;
+		t.y = new_tile / tw;
 		t.sheet = new_sheet;
 
 		changed = true;

@@ -432,6 +432,10 @@ void loadTileSheets(const char *path)
 		sprintf(buf, "Sheet %d", i);
 		sheetCombo->addValue(std::string(buf));
 	}
+
+	if (levelEditor) {
+		levelEditor->tilesLoaded();
+	}
 }
 
 static void reloadTiles()
