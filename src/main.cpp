@@ -24,6 +24,7 @@ static bool draw_yellow_and_purple = true;
 static A_Scrollpane *levelScrollpane;
 static int levelX = -1, levelY = -1;
 static A_Scrollpane *tileScrollpane;
+static std::vector<bool> draw_solids;
 
 static int mouse_x = 0, mouse_y = 0;
 
@@ -204,7 +205,7 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 					0
 				);
 			}
-			if (solids[layerCombo->getSelected()]) {
+			if (draw_solids[levelEditor->getCurrentLayer()] && solids[layerCombo->getSelected()]) {
 				al_draw_line(
 					dx,
 					dy,
@@ -446,7 +447,7 @@ static void reloadTiles()
 }
 
 int main(int argc, char **argv)
-{   
+{
 	// Initialize Allegro
 	al_init();
 	al_install_mouse();
@@ -582,6 +583,9 @@ int main(int argc, char **argv)
 	A_Label *statusLabel = new A_Label("Status", al_color_name("black"));
 
 	setTitle();
+	for (int i = 0; i < levelEditor->getNumLayers(); i++) {
+		draw_solids.push_back(true);
+	}
 
 	tgui::setNewWidgetParent(0);
 	tgui::addWidget(mainSplitTop);
@@ -631,7 +635,13 @@ int main(int argc, char **argv)
 				event.keyboard.keycode == ALLEGRO_KEY_ESCAPE) ||
 				event.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
 				
-				int ret = al_show_native_message_box(display, "Confirm Exit", "Really?", "Seriously?", 0, ALLEGRO_MESSAGEBOX_YES_NO);
+				int ret;
+				if (levelEditor->getChanged()) {
+					ret = al_show_native_message_box(display, "Confirm Exit", "The level has changed!", "Really exit?", 0, ALLEGRO_MESSAGEBOX_YES_NO);
+				}
+				else {
+					ret = 1;
+				}
 				if (ret == 1) {
 					goto done;
 				}
@@ -670,6 +680,10 @@ int main(int argc, char **argv)
 				//	al_unlock_bitmap(tileSheets[j]);
 				//}
 			}
+			else if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_T && tgui::isKeyDown(ALLEGRO_KEY_ALT)) {
+				int layer = levelEditor->getCurrentLayer();
+				draw_solids[layer] = !draw_solids[layer];
+			}
 			else if ((event.type == ALLEGRO_EVENT_KEY_CHAR && event.keyboard.keycode == ALLEGRO_KEY_S &&
 						(event.keyboard.modifiers & ALLEGRO_KEYMOD_CTRL)))
 			{
@@ -677,28 +691,39 @@ int main(int argc, char **argv)
 				setTitle();
 				continue;
 			}
-			else if ((event.type == ALLEGRO_EVENT_KEY_UP && event.keyboard.keycode >= ALLEGRO_KEY_F1 &&
-                   event.keyboard.keycode <= ALLEGRO_KEY_F12))
-         {
-            int layer = (event.keyboard.keycode - ALLEGRO_KEY_F1);
-            if (layer < 0 || layer >= levelEditor->getNumLayers())
-               continue;
-            
-            if (levelEditor->getLayer() != layer) {
-               levelEditor->setLayer(layer);
-               layerCombo->setSelected(layer);
-            } else {
-               levelEditor->toggleLayerVisibility(layer);
-            }
-         }
+			else if ((event.type == ALLEGRO_EVENT_KEY_UP && event.keyboard.keycode >= ALLEGRO_KEY_F1 && event.keyboard.keycode <= ALLEGRO_KEY_F12)) {
+				int layer = (event.keyboard.keycode - ALLEGRO_KEY_F1);
+				if (layer < 0 || layer >= levelEditor->getNumLayers())
+					continue;
+
+				if (levelEditor->getLayer() != layer) {
+					levelEditor->setLayer(layer);
+					layerCombo->setSelected(layer);
+				} else {
+					levelEditor->toggleLayerVisibility(layer);
+				}
+			}
 			else if (event.type == ALLEGRO_GET_EVENT_TYPE('T', 'G', 'U', 'I')) {
 				ALLEGRO_USER_EVENT *u = (ALLEGRO_USER_EVENT *)&event;
 				int type = (int)u->data1;
 				if (type == TGUI_EVENT_OBJECT) {
 					tgui::TGUIWidget *widget = (tgui::TGUIWidget *)u->data2;
 					if (widget == fileOpen) {
-						levelEditor->load();
-						setTitle();
+						int ret;
+						if (levelEditor->getChanged()) {
+							ret = al_show_native_message_box(display, "Warning", "The level has changed!", "Really load a new level?", 0, ALLEGRO_MESSAGEBOX_YES_NO);
+						}
+						else {
+							ret = 1;
+						}
+						if (ret == 1) {
+							levelEditor->load();
+							setTitle();
+							draw_solids.clear();
+							for (int i = 0; i < levelEditor->getNumLayers(); i++) {
+								draw_solids.push_back(true);
+							}
+						}
 					}
 					else if (widget == fileSave) {
 						levelEditor->save(false);
@@ -789,6 +814,7 @@ int main(int argc, char **argv)
 							" Shift-F\n"
 							" R\n"
 							" T\n"
+							" Alt-T\n"
 							" Enter\n"
 							" Q\n"
 							" Comma\n"
@@ -817,6 +843,7 @@ int main(int argc, char **argv)
 							"Switch to fill tool (test all layers)\n"
 							"Start/stop recording macro\n"
 							"Toggle current layer drawing\n"
+							"Toggle current layer solids drawing\n"
 							"Save as PNG\n"
 							"Marquee tool\n"
 							"Copy (all layers with Ctrl)\n"

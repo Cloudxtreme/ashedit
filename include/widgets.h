@@ -2141,6 +2141,7 @@ public:
 						tiles[yy+marquee_float_y][xx+marquee_float_x][l].number = marquee_buffer[yy][xx][marquee_layer == -1 ? l : 0].number;
 						tiles[yy+marquee_float_y][xx+marquee_float_x][l].sheet = marquee_buffer[yy][xx][marquee_layer == -1 ? l : 0].sheet;
 						tiles[yy+marquee_float_y][xx+marquee_float_x][l].solid = marquee_buffer[yy][xx][marquee_layer == -1 ? l : 0].solid;
+						changed = true;
 					}
 				}
 			}
@@ -2261,6 +2262,7 @@ public:
 						t.number = tiles[yy][xx][i].number;
 						t.sheet = tiles[yy][xx][i].sheet;
 						t.solid = tiles[yy][xx][i].solid;
+						changed = true;
 						g.push_back(t);
 					}
 					r.push_back(g);
@@ -2276,6 +2278,7 @@ public:
 							tiles[yy][xx][i].number = -1;
 							tiles[yy][xx][i].sheet = -1;
 							tiles[yy][xx][i].solid = false;
+							changed = true;
 						}
 					}
 				}
@@ -2419,6 +2422,7 @@ public:
 					tiles[y][x][mover_dest_layer].sheet = tiles[y][x][mover_src_layer].sheet;
 					tiles[y][x][mover_src_layer].number = -1;
 					tiles[y][x][mover_src_layer].sheet = -1;
+					changed = true;
 				}
 				break;
 			}
@@ -2426,16 +2430,19 @@ public:
 			case TOOL_BRUSH:
 				tiles[y][x][l].number = number;
 				tiles[y][x][l].sheet = sheet;
+				changed = true;
 				break;
 			case TOOL_CLEAR:
 				tiles[y][x][l].number = -1;
 				tiles[y][x][l].sheet = -1;
+				changed = true;
 				break;
 			case TOOL_SOLID:
 				if ((last_solid_x == -1 && last_solid_y == -1) || (last_solid_x != x || last_solid_y != y)) {
 					tiles[y][x][l].solid = !tiles[y][x][l].solid;
 					last_solid_x = x;
 					last_solid_y = y;
+					changed = true;
 				}
 				break;
 			case TOOL_FILL_ALL:
@@ -2480,6 +2487,8 @@ public:
 
 					tiles[y][x][l].number = n;
 					tiles[y][x][l].sheet = s;
+
+					changed = true;
 				}
 
 				break;
@@ -2708,21 +2717,6 @@ public:
 		cloneStartX = -1;
 	}
 
-	void writeInt(ALLEGRO_FILE *f, int i) {
-		al_fputc(f, (i >> 0) & 0xff);
-		al_fputc(f, (i >> 8) & 0xff);
-		al_fputc(f, (i >> 16) & 0xff);
-		al_fputc(f, (i >> 24) & 0xff);
-	}
-
-	int readInt(ALLEGRO_FILE *f) {
-		unsigned char b1 = al_fgetc(f);
-		unsigned char b2 = al_fgetc(f);
-		unsigned char b3 = al_fgetc(f);
-		unsigned char b4 = al_fgetc(f);
-		return b1 | (b2 << 8) | (b3 << 16) | (b4 << 24);
-	}
-	
 	void size(int w, int h) {
 		tiles.clear();
 
@@ -2767,29 +2761,29 @@ public:
 
 		ALLEGRO_FILE *f = al_fopen(cFilename, "rb");
 
-		int w = readInt(f);
-		int h = readInt(f);
+#ifdef MO2
+		int w = al_fread32le(f);
+		int h = al_fread32le(f);
 
-#ifdef MONSTERRPG2
 		layers = General::startLayers;
 
 		size(w, h);
 
 		resizeScrollpane();
 
-		int nTileTypes = readInt(f);
+		int nTileTypes = al_fread32le(f);
 
 		std::vector<int> tileTypes;
 
 		for (int i = 0; i < nTileTypes; i++) {
-			tileTypes.push_back(readInt(f));
+			tileTypes.push_back(al_fread32le(f));
 		}
 
 		for (unsigned int y = 0; y < tiles.size(); y++) {
 			for (unsigned int x = 0; x < tiles[0].size(); x++) {
 				for (int l = 0; l < General::startLayers; l++) {
 					_Tile &t = tiles[y][x][l];
-					int n = readInt(f);
+					int n = al_fread32le(f);
 					t.number = n < 0 ? -1 : tileTypes[n];
 					t.sheet = n < 0 ? -1 : 0;
 				}
@@ -2800,8 +2794,11 @@ public:
 				}
 			}
 		}
-#else
-		layers = readInt(f);
+#elif defined MO3
+		int w = al_fread16le(f);
+		int h = al_fread16le(f);
+
+		layers = al_fgetc(f);
 
 		size(w, h);
 
@@ -2813,7 +2810,29 @@ public:
 			for (unsigned int y = 0; y < tiles.size(); y++) {
 				for (unsigned int x = 0; x < tiles[0].size(); x++) {
 					_Tile &t = tiles[y][x][l];
-					t.number = readInt(f);
+					t.number = al_fread16le(f);
+					t.sheet = al_fgetc(f);
+					t.solid = al_fgetc(f);
+				}
+			}
+		}
+#else // Crystal Picnic format
+		int w = al_fread32le(f);
+		int h = al_fread32le(f);
+
+		layers = al_fread32le(f);
+
+		size(w, h);
+
+		resizeScrollpane();
+		
+		// for each layer
+		for (int l = 0; l < layers; l++) {
+			// read each tile: tile number and sheet
+			for (unsigned int y = 0; y < tiles.size(); y++) {
+				for (unsigned int x = 0; x < tiles[0].size(); x++) {
+					_Tile &t = tiles[y][x][l];
+					t.number = al_fread32le(f);
 					t.sheet = al_fgetc(f);
 					t.solid = al_fgetc(f);
 				}
@@ -2833,11 +2852,13 @@ public:
 	}
 
 	void save(std::string filename) {
-#ifdef MONSTERRPG2
+		changed = false;
+
+#ifdef MO2
 		ALLEGRO_FILE *f = al_fopen(filename.c_str(), "wb");
 		
-		writeInt(f, tiles[0].size()); // width
-		writeInt(f, tiles.size()); // height
+		al_fwrite32le(f, tiles[0].size()); // width
+		al_fwrite32le(f, tiles.size()); // height
 
 		std::vector<int> used_tiles;
 
@@ -2853,10 +2874,10 @@ public:
 			}
 		}
 
-		writeInt(f, used_tiles.size());
+		al_fwrite32le(f, used_tiles.size());
 
 		for (size_t i = 0; i < used_tiles.size(); i++) {
-			writeInt(f, used_tiles[i]);
+			al_fwrite32le(f, used_tiles[i]);
 		}
 
 		for (unsigned int y = 0; y < tiles.size(); y++) {
@@ -2870,7 +2891,7 @@ public:
 							break;
 						}
 					}
-					writeInt(f, t.number < 0 ? -1 : idx);
+					al_fwrite32le(f, t.number < 0 ? -1 : idx);
 					if (l == 0 && t.solid) {
 						solid = true;
 					}
@@ -2880,14 +2901,14 @@ public:
 		}
 
 		al_fclose(f);
-#else
+#elif defined MO3
 		const char *cFilename = filename.c_str();
 
 		ALLEGRO_FILE *f = al_fopen(cFilename, "wb");
 
-		writeInt(f, tiles[0].size()); // width
-		writeInt(f, tiles.size()); // height
-		writeInt(f, layers);
+		al_fwrite16le(f, tiles[0].size()); // width
+		al_fwrite16le(f, tiles.size()); // height
+		al_fputc(f, layers);
 
 		// for each layer
 		for (int l = 0; l < layers; l++) {
@@ -2895,7 +2916,30 @@ public:
 			for (unsigned int y = 0; y < tiles.size(); y++) {
 				for (unsigned int x = 0; x < tiles[0].size(); x++) {
 					_Tile t = tiles[y][x][l];
-					writeInt(f, t.number);
+					al_fwrite16le(f, t.number);
+					al_fputc(f, t.sheet);
+					al_fputc(f, t.solid);
+				}
+			}
+		}
+
+		al_fclose(f);
+#else // Crystal Picnic format
+		const char *cFilename = filename.c_str();
+
+		ALLEGRO_FILE *f = al_fopen(cFilename, "wb");
+
+		al_fwrite32le(f, tiles[0].size()); // width
+		al_fwrite32le(f, tiles.size()); // height
+		al_fwrite32le(f, layers);
+
+		// for each layer
+		for (int l = 0; l < layers; l++) {
+			// write each tile: tile number and sheet
+			for (unsigned int y = 0; y < tiles.size(); y++) {
+				for (unsigned int x = 0; x < tiles[0].size(); x++) {
+					_Tile t = tiles[y][x][l];
+					al_fwrite32le(f, t.number);
 					al_fputc(f, t.sheet);
 					al_fputc(f, t.solid);
 				}
@@ -3016,6 +3060,14 @@ public:
 		visible[layer] = !visible[layer];
 	}
 
+	int getCurrentLayer() {
+		return layer;
+	}
+
+	bool getChanged() {
+		return changed;
+	}
+
 	A_Leveleditor(drawCallback callback, int layers, A_Tileselector *ts) :
 		A_Canvas(callback),
 		layers(layers),
@@ -3034,7 +3086,8 @@ public:
 		marquee_marked(false),
 		marquee_buffer_filled(false),
 		marquee_floating(false),
-		dragging_marquee(false)
+		dragging_marquee(false),
+		changed(false)
 	{
 		size(General::areaSize, General::areaSize);
 		loadSavePath = al_create_path("");
@@ -3137,6 +3190,8 @@ protected:
 		_Tile &t = tiles[y][x][layer];
 		t.number = new_tile;
 		t.sheet = new_sheet;
+
+		changed = true;
 	}
 
 	int layers;
@@ -3180,6 +3235,8 @@ protected:
 	int marquee_drag_y;
 	int last_solid_x;
 	int last_solid_y;
+
+	bool changed;
 };
 
 class A_Label : public tgui::TGUIWidget {
