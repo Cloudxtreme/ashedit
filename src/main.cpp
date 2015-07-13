@@ -10,10 +10,56 @@
 #include <allegro5/allegro_memfile.h>
 
 #include "icon.h"
-#include "ryori.h"
+
+enum {
+   FILE_ID = 1,
+   FILE_OPEN_ID,
+   FILE_SAVE_ID,
+   FILE_SAVE_AS_ID,
+   FILE_LOAD_TILES_ID,
+   FILE_EXIT_ID,
+   EDIT_ID,
+   EDIT_UNDO_ID,
+   EDIT_REDO_ID,
+   SCALE_ID,
+   SCALE_1_ID,
+   SCALE_2_ID,
+   SCALE_3_ID,
+   SCALE_4_ID,
+   HELP_ID,
+   HELP_QUICK_REFERENCE_ID
+};
+
+ALLEGRO_MENU_INFO main_menu_info[] = {
+   ALLEGRO_START_OF_MENU("&File", FILE_ID),
+      { "&Open", FILE_OPEN_ID, 0, NULL },
+      { "&Save", FILE_SAVE_ID, 0, NULL },
+      { "Save As...", FILE_SAVE_AS_ID, 0, NULL },
+      { "Load Tiles", FILE_LOAD_TILES_ID, 0, NULL },
+      ALLEGRO_MENU_SEPARATOR,
+      { "E&xit", FILE_EXIT_ID, 0, NULL },
+      ALLEGRO_END_OF_MENU,
+   
+   ALLEGRO_START_OF_MENU("&Edit", EDIT_ID),
+      { "Undo", EDIT_UNDO_ID, 0, NULL },
+      { "Redo", EDIT_REDO_ID, 0, NULL },
+      ALLEGRO_END_OF_MENU,
+
+   ALLEGRO_START_OF_MENU("S&cale", SCALE_ID),
+      { "&1x", SCALE_1_ID, 0, NULL },
+      { "&2x", SCALE_2_ID, 0, NULL },
+      { "&3x", SCALE_3_ID, 0, NULL },
+      { "&4x", SCALE_4_ID, 0, NULL },
+      ALLEGRO_END_OF_MENU,
+
+   ALLEGRO_START_OF_MENU("&Help", HELP_ID),
+      { "&Quick Reference", HELP_QUICK_REFERENCE_ID, 0, NULL },
+      ALLEGRO_END_OF_MENU,
+
+   ALLEGRO_END_OF_MENU
+};
 
 ALLEGRO_DISPLAY *display;
-ALLEGRO_BITMAP *ryori_bmp;
 ALLEGRO_EVENT_QUEUE *queue;
 static bool resize;
 std::vector<ALLEGRO_BITMAP *> tileSheets;
@@ -281,63 +327,6 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 	}
 }
 
-static void simulate(void)
-{
-	int offsx = 0;
-	int offsy = 0;
-	int dx = 0;
-	int dy = 0;
-	int layers = levelEditor->getLayers();
-	int currLayer = levelEditor->getLayer();
-	int w = al_get_display_width(display);
-	int h = al_get_display_height(display);
-
-	while (true) {
-		ALLEGRO_EVENT event;
-		al_wait_for_event(queue, &event);
-		if (event.type == ALLEGRO_EVENT_KEY_CHAR) {
-			if (event.keyboard.keycode == ALLEGRO_KEY_LEFT) {
-				offsx -= 10;
-				if (offsx < 0) {
-					offsx += 10;
-					dx += 10;
-				}
-			}
-			else if (event.keyboard.keycode == ALLEGRO_KEY_RIGHT) {
-				if (dx > 0)
-					dx -= 10;
-				else
-					offsx += 10;
-			}
-			else if (event.keyboard.keycode == ALLEGRO_KEY_UP) {
-				offsy -= 10;
-				if (offsy < 0) {
-					offsy += 10;
-					dy += 10;
-				}
-			}
-			else if (event.keyboard.keycode == ALLEGRO_KEY_DOWN) {
-				if (dy > 0)
-					dy -= 10;
-				else
-					offsy += 10;
-			}
-			else if (event.keyboard.keycode == ALLEGRO_KEY_ESCAPE) {
-				return;
-			}
-		}
-		al_clear_to_color(al_map_rgb(0, 0, 0));
-		for (int i = 0; i <= currLayer; i++) {
-			levelDrawCallback(offsx, offsy, dx, dy, w, h, i);
-		}
-		al_draw_bitmap(ryori_bmp, (w-al_get_bitmap_width(ryori_bmp))/2, (h-al_get_bitmap_height(ryori_bmp))/2, 0);
-		for (int i = currLayer+1; i < layers; i++) {
-			levelDrawCallback(offsx, offsy, dx, dy, w, h, i);
-		}
-		al_flip_display();
-	}
-}
-
 std::string selectDir(const std::string &start)
 {
 	std::string tmp = start;
@@ -460,11 +449,16 @@ int main(int argc, char **argv)
 	al_init_font_addon();
 	al_init_ttf_addon();
 	al_init_primitives_addon();
+	al_init_native_dialog_addon();
 
     al_init_user_event_source(&evtsrc);
  
 	al_set_new_display_flags(ALLEGRO_RESIZABLE);
 	display = al_create_display(1200, 640);
+
+	ALLEGRO_MENU *menu = al_build_menu(main_menu_info);
+	al_set_display_menu(display, menu);
+
 #ifdef ALLEGRO_WINDOWS
 	ALLEGRO_FONT *font = al_load_ttf_font("C:\\Windows\\Fonts\\arial.ttf", 12, 0);
 #else
@@ -483,58 +477,20 @@ int main(int argc, char **argv)
 	al_destroy_bitmap(icon_bmp);
 	al_fclose(f);
 
-	f = al_open_memfile(Ryori_png, sizeof(Ryori_png), "rb");
-	ryori_bmp = al_load_bitmap_f(f, ".png");
-	al_fclose(f);
-
 	al_register_event_source(queue, al_get_mouse_event_source());
 	al_register_event_source(queue, al_get_keyboard_event_source());
 	al_register_event_source(queue, al_get_display_event_source(display));
 	al_register_event_source(queue, al_get_timer_event_source(draw_timer));
+	al_register_event_source(queue, al_get_default_menu_event_source());
 
 	tgui::init(display);
 	tgui::setFont(font);
 	
-	A_Splitter *mainSplitTop = new A_Splitter(A_Splitter::SPLIT_HORIZONTAL);
 	A_Splitter *mainSplitBottom= new A_Splitter(A_Splitter::SPLIT_HORIZONTAL);
 	A_Splitter *canvasSplit = new A_Splitter(A_Splitter::SPLIT_VERTICAL);
 	A_Splitter *canvasSplitLeft = new A_Splitter(A_Splitter::SPLIT_HORIZONTAL);
 	A_Splitter *canvasSplitRight = new A_Splitter(A_Splitter::SPLIT_HORIZONTAL);
 	canvasSplit->setResizable(true);
-
-	A_Menubar *menubar = new A_Menubar();
-	A_Menu *fileMenu = new A_Menu("File");
-	A_Menu *editMenu = new A_Menu("Edit");
-	A_Menu *scaleMenu = new A_Menu("Scale");
-	A_Menu *helpMenu = new A_Menu("Help");
-	A_Menuitem *fileOpen = new A_Menuitem("Open...");
-	A_Menuitem *fileLoadTiles = new A_Menuitem("Load Tiles...");
-	A_Menuitem *fileSave = new A_Menuitem("Save");
-	A_Menuitem *fileSaveAs = new A_Menuitem("Save As...");
-	A_Menuitem *fileSimulate = new A_Menuitem("Simulate");
-	A_Menuitem *editUndo = new A_Menuitem("Undo   Ctrl-Z");
-	A_Menuitem *editRedo = new A_Menuitem("Redo   Ctrl-Shift-Z");
-	A_Menuitem *scale1x = new A_Menuitem("1x");
-	A_Menuitem *scale2x = new A_Menuitem("2x");
-	A_Menuitem *scale3x = new A_Menuitem("3x");
-	A_Menuitem *scale4x = new A_Menuitem("4x");
-	A_Menuitem *helpQuickRef = new A_Menuitem("Quick Reference");
-	menubar->addMenu(fileMenu);
-	menubar->addMenu(editMenu);
-	menubar->addMenu(scaleMenu);
-	menubar->addMenu(helpMenu);
-	fileMenu->addMenuitem(fileOpen);
-	fileMenu->addMenuitem(fileSave);
-	fileMenu->addMenuitem(fileSaveAs);
-	fileMenu->addMenuitem(fileSimulate);
-	fileMenu->addMenuitem(fileLoadTiles);
-	editMenu->addMenuitem(editUndo);
-	editMenu->addMenuitem(editRedo);
-	scaleMenu->addMenuitem(scale1x);
-	scaleMenu->addMenuitem(scale2x);
-	scaleMenu->addMenuitem(scale3x);
-	scaleMenu->addMenuitem(scale4x);
-	helpMenu->addMenuitem(helpQuickRef);
 
 	layerCombo = new A_Combobox(
 		7,
@@ -592,9 +548,7 @@ int main(int argc, char **argv)
 	}
 
 	tgui::setNewWidgetParent(0);
-	tgui::addWidget(mainSplitTop);
-	mainSplitTop->addToFirstPane(menubar);
-	mainSplitTop->addToSecondPane(mainSplitBottom);
+	tgui::addWidget(mainSplitBottom);
 	mainSplitBottom->addToSecondPane(statusLabel);
 	mainSplitBottom->addToFirstPane(canvasSplit);
 	canvasSplit->addToFirstPane(canvasSplitLeft);
@@ -604,9 +558,8 @@ int main(int argc, char **argv)
 	canvasSplitRight->addToFirstPane(sheetCombo);
 	canvasSplitRight->addToSecondPane(tileScrollpane);
 
-	tgui::setFocus(mainSplitTop);
+	tgui::setFocus(mainSplitBottom);
 
-	mainSplitTop->setSplitSize(20, -1);
 	mainSplitBottom->setSplitSize(-1, 20);
 	canvasSplitLeft->setSplitSize(20, -1);
 	canvasSplitRight->setSplitSize(20, -1);
@@ -630,7 +583,6 @@ int main(int argc, char **argv)
 				draw_ticks++;
 			}
 			else if (event.type == ALLEGRO_EVENT_DISPLAY_RESIZE) {
-				menubar->mouseDown(-1, -1, 0, 0, 1);
 				al_acknowledge_resize(event.display.source);
 				resize = true;
 				draw();
@@ -707,78 +659,168 @@ int main(int argc, char **argv)
 					levelEditor->toggleLayerVisibility(layer);
 				}
 			}
+			else if (event.type == ALLEGRO_EVENT_MENU_CLICK) {
+				if (event.user.data1 == FILE_OPEN_ID) {
+					int ret;
+					if (levelEditor->getChanged()) {
+						ret = al_show_native_message_box(display, "Warning", "The level has changed!", "Really load a new level?", 0, ALLEGRO_MESSAGEBOX_YES_NO);
+					}
+					else {
+						ret = 1;
+					}
+					if (ret == 1) {
+						levelEditor->load();
+						setTitle();
+						draw_solids.clear();
+						for (int i = 0; i < levelEditor->getNumLayers(); i++) {
+							draw_solids.push_back(true);
+						}
+					}
+				}
+				else if (event.user.data1 == FILE_SAVE_ID) {
+					levelEditor->save(false);
+					setTitle();
+				}
+				else if (event.user.data1 == FILE_SAVE_AS_ID) {
+					levelEditor->save(true);
+					setTitle();
+				}
+				else if (event.user.data1 == FILE_LOAD_TILES_ID) {
+					const char *start = argc > 1 ? argv[1] : al_get_current_directory();
+					tile_load_path = selectDir(start);
+					loadTileSheets(tile_load_path.c_str());
+					
+					if (tileSheets.size()) {
+						tileScrollpane->setScrollSize(
+							al_get_bitmap_width(tileSheets[0]),
+							al_get_bitmap_height(tileSheets[0])
+						);
+					}
+				}
+				else if (event.user.data1 == FILE_EXIT_ID) {
+					int ret;
+					if (levelEditor->getChanged()) {
+						ret = al_show_native_message_box(display, "Confirm Exit", "The level has changed!", "Really exit?", 0, ALLEGRO_MESSAGEBOX_YES_NO);
+					}
+					else {
+						ret = 1;
+					}
+					if (ret == 1) {
+						goto done;
+					}
+				}
+				else if (event.user.data1 == EDIT_UNDO_ID) {
+					levelEditor->doUndo();
+				}
+				else if (event.user.data1 == EDIT_REDO_ID) {
+					levelEditor->doRedo();
+				}
+				else if (event.user.data1 == SCALE_1_ID) {
+					General::scale = 1;
+					levelEditor->resizeScrollpane();
+					reloadTiles();
+				}
+				else if (event.user.data1 == SCALE_2_ID) {
+					General::scale = 2;
+					levelEditor->resizeScrollpane();
+					reloadTiles();
+				}
+				else if (event.user.data1 == SCALE_3_ID) {
+					General::scale = 3;
+					levelEditor->resizeScrollpane();
+					reloadTiles();
+				}
+				else if (event.user.data1 == SCALE_4_ID) {
+					General::scale = 4;
+					levelEditor->resizeScrollpane();
+					reloadTiles();
+				}
+				else if (event.user.data1 == HELP_QUICK_REFERENCE_ID) {
+					quickRefFrame = new A_Frame(al_color_name("blue"), 450, 450);
+					quickRefFrame->setPosition(50, 50);
+					quickRefSplitter = new A_Splitter(A_Splitter::SPLIT_HORIZONTAL);
+					quickRefBottomSplitter = new A_Splitter(A_Splitter::SPLIT_VERTICAL);
+					quickRefContent1 = new A_Label(
+						" Ctrl-R\n"
+						" Shift-Ctrl-R\n"
+						" Ctrl-C\n"
+						" Shift-Ctrl-C\n"
+						" Ctrl-Delete\n"
+						" Shift-Ctrl-Delete\n"
+						" Ctrl-L\n"
+						" Shift-Ctrl-L\n"
+						" Ctrl-Alt-L\n"
+						" B\n"
+						" C\n"
+						" S\n"
+						" M\n"
+						" K\n"
+						" V\n"
+						" F\n"
+						" Shift-F\n"
+						" R\n"
+						" T\n"
+						" Alt-T\n"
+						" Enter\n"
+						" Q\n"
+						" Comma\n"
+						" Period\n"
+						" Slash\n"
+						" Space\n",
+						al_color_name("white")
+					);
+					quickRefContent2 = new A_Label(
+						"Insert row before cursor\n"
+						"Insert row after cursor\n"
+						"Insert column before cursor\n"
+						"Insert column after cursor\n"
+						"Delete row\n"
+						"Delete column\n"
+						"Insert layer before current layer\n"
+						"Insert layer after current layer\n"
+						"Delete current layer\n"
+						"Switch to the brush tool\n"
+						"Switch to the clear tool\n"
+						"Switch to the solids tool\n"
+						"Switch to the macro tool\n"
+						"Switch to the clone tool\n"
+						"Switch to the layer mover tool\n"
+						"Switch to fill tool (test current layer)\n"
+						"Switch to fill tool (test all layers)\n"
+						"Start/stop recording macro\n"
+						"Toggle current layer drawing\n"
+						"Toggle current layer solids drawing\n"
+						"Save as PNG\n"
+						"Marquee tool\n"
+						"Copy (all layers with Ctrl)\n"
+						"Cut (all layers with Ctrl)\n"
+						"Paste\n"
+						"Anchor floating selection\n",
+						al_color_name("white")
+					);
+					quickRefContent1->setX(5);
+					quickRefContent1->setY(5);
+					quickRefContent2->setY(5);
+					quickRefTitlebar = new A_Titlebar(quickRefFrame, "Quick Reference", al_color_name("cyan"), A_Titlebar::CLOSE_BUTTON);
+					quickRefSplitter->addToFirstPane(quickRefTitlebar);
+					quickRefSplitter->addToSecondPane(quickRefBottomSplitter);
+					quickRefBottomSplitter->addToFirstPane(quickRefContent1);
+					quickRefBottomSplitter->addToSecondPane(quickRefContent2);
+					tgui::setNewWidgetParent(NULL);
+					tgui::addWidget(quickRefFrame);
+					tgui::setNewWidgetParent(quickRefFrame);
+					tgui::addWidget(quickRefSplitter);
+					quickRefSplitter->setSplitSize(20, -1);
+					quickRefBottomSplitter->setSplitRatio(0.3, 0.7);
+					tgui::resize(NULL);
+				}
+			}
 			else if (event.type == ALLEGRO_GET_EVENT_TYPE('T', 'G', 'U', 'I')) {
 				ALLEGRO_USER_EVENT *u = (ALLEGRO_USER_EVENT *)&event;
 				int type = (int)u->data1;
 				if (type == TGUI_EVENT_OBJECT) {
 					tgui::TGUIWidget *widget = (tgui::TGUIWidget *)u->data2;
-					if (widget == fileOpen) {
-						int ret;
-						if (levelEditor->getChanged()) {
-							ret = al_show_native_message_box(display, "Warning", "The level has changed!", "Really load a new level?", 0, ALLEGRO_MESSAGEBOX_YES_NO);
-						}
-						else {
-							ret = 1;
-						}
-						if (ret == 1) {
-							levelEditor->load();
-							setTitle();
-							draw_solids.clear();
-							for (int i = 0; i < levelEditor->getNumLayers(); i++) {
-								draw_solids.push_back(true);
-							}
-						}
-					}
-					else if (widget == fileSave) {
-						levelEditor->save(false);
-						setTitle();
-					}
-					else if (widget == fileSaveAs) {
-						levelEditor->save(true);
-						setTitle();
-					}
-					else if (widget == fileSimulate) {
-						simulate();
-					}
-					else if (widget == fileLoadTiles) {
-						const char *start = argc > 1 ? argv[1] : al_get_current_directory();
-						tile_load_path = selectDir(start);
-						loadTileSheets(tile_load_path.c_str());
-						
-						if (tileSheets.size()) {
-							tileScrollpane->setScrollSize(
-								al_get_bitmap_width(tileSheets[0]),
-								al_get_bitmap_height(tileSheets[0])
-							);
-						}
-					}
-					else if (widget == editUndo) {
-						levelEditor->doUndo();
-					}
-					else if (widget == editRedo) {
-						levelEditor->doRedo();
-					}
-					else if (widget == scale1x) {
-						General::scale = 1;
-						levelEditor->resizeScrollpane();
-						reloadTiles();
-					}
-					else if (widget == scale2x) {
-						General::scale = 2;
-						levelEditor->resizeScrollpane();
-						reloadTiles();
-					}
-					else if (widget == scale3x) {
-						General::scale = 3;
-						levelEditor->resizeScrollpane();
-						reloadTiles();
-					}
-					else if (widget == scale4x) {
-						General::scale = 4;
-						levelEditor->resizeScrollpane();
-						reloadTiles();
-					}
-					else if (widget && widget == quickRefTitlebar) {
+					if (widget && widget == quickRefTitlebar) {
 						quickRefFrame->remove();
 						delete quickRefTitlebar;
 						delete quickRefContent1;
@@ -792,85 +834,6 @@ int main(int argc, char **argv)
 						quickRefSplitter = NULL;
 						quickRefBottomSplitter = NULL;
 						quickRefFrame = NULL;
-					}
-					else if (widget == helpQuickRef) {
-						quickRefFrame = new A_Frame(al_color_name("blue"), 450, 450);
-						quickRefFrame->setPosition(50, 50);
-						quickRefSplitter = new A_Splitter(A_Splitter::SPLIT_HORIZONTAL);
-						quickRefBottomSplitter = new A_Splitter(A_Splitter::SPLIT_VERTICAL);
-						quickRefContent1 = new A_Label(
-							" Ctrl-R\n"
-							" Shift-Ctrl-R\n"
-							" Ctrl-C\n"
-							" Shift-Ctrl-C\n"
-							" Ctrl-Delete\n"
-							" Shift-Ctrl-Delete\n"
-							" Ctrl-L\n"
-							" Shift-Ctrl-L\n"
-							" Ctrl-Alt-L\n"
-							" B\n"
-							" C\n"
-							" S\n"
-							" M\n"
-							" K\n"
-							" V\n"
-							" F\n"
-							" Shift-F\n"
-							" R\n"
-							" T\n"
-							" Alt-T\n"
-							" Enter\n"
-							" Q\n"
-							" Comma\n"
-							" Period\n"
-							" Slash\n"
-							" Space\n",
-							al_color_name("white")
-						);
-						quickRefContent2 = new A_Label(
-							"Insert row before cursor\n"
-							"Insert row after cursor\n"
-							"Insert column before cursor\n"
-							"Insert column after cursor\n"
-							"Delete row\n"
-							"Delete column\n"
-							"Insert layer before current layer\n"
-							"Insert layer after current layer\n"
-							"Delete current layer\n"
-							"Switch to the brush tool\n"
-							"Switch to the clear tool\n"
-							"Switch to the solids tool\n"
-							"Switch to the macro tool\n"
-							"Switch to the clone tool\n"
-							"Switch to the layer mover tool\n"
-							"Switch to fill tool (test current layer)\n"
-							"Switch to fill tool (test all layers)\n"
-							"Start/stop recording macro\n"
-							"Toggle current layer drawing\n"
-							"Toggle current layer solids drawing\n"
-							"Save as PNG\n"
-							"Marquee tool\n"
-							"Copy (all layers with Ctrl)\n"
-							"Cut (all layers with Ctrl)\n"
-							"Paste\n"
-							"Anchor floating selection\n",
-							al_color_name("white")
-						);
-						quickRefContent1->setX(5);
-						quickRefContent1->setY(5);
-						quickRefContent2->setY(5);
-						quickRefTitlebar = new A_Titlebar(quickRefFrame, "Quick Reference", al_color_name("cyan"), A_Titlebar::CLOSE_BUTTON);
-						quickRefSplitter->addToFirstPane(quickRefTitlebar);
-						quickRefSplitter->addToSecondPane(quickRefBottomSplitter);
-						quickRefBottomSplitter->addToFirstPane(quickRefContent1);
-						quickRefBottomSplitter->addToSecondPane(quickRefContent2);
-						tgui::setNewWidgetParent(NULL);
-						tgui::addWidget(quickRefFrame);
-						tgui::setNewWidgetParent(quickRefFrame);
-						tgui::addWidget(quickRefSplitter);
-						quickRefSplitter->setSplitSize(20, -1);
-						quickRefBottomSplitter->setSplitRatio(0.3, 0.7);
-						tgui::resize(NULL);
 					}
 				}
 			}
