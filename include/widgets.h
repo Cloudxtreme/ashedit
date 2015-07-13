@@ -2830,16 +2830,19 @@ public:
 			for (unsigned int y = 0; y < tiles.size(); y++) {
 				for (unsigned int x = 0; x < tiles[0].size(); x++) {
 					_Tile &t = tiles[y][x][l];
-					t.x = al_fgetc(f);
-					t.y = al_fgetc(f);
-					if (tileSheets.size() > 0) {
+					t.x = (char)al_fgetc(f);
+					t.y = (char)al_fgetc(f);
+					if (t.x < 0) {
+						t.number = -1;
+					}
+					else if (tileSheets.size() > 0) {
 						int tw = al_get_bitmap_width(tileSheets[0]) / (General::tileSize*General::scale);
 						t.number = t.x + t.y * tw;
 					}
 					else {
 						t.number = -777;
 					}
-					t.sheet = al_fgetc(f);
+					t.sheet = (char)al_fgetc(f);
 					t.solid = al_fgetc(f);
 				}
 			}
@@ -2944,9 +2947,15 @@ public:
 			for (unsigned int y = 0; y < tiles.size(); y++) {
 				for (unsigned int x = 0; x < tiles[0].size(); x++) {
 					_Tile t = tiles[y][x][l];
-					int tw = al_get_bitmap_width(tileSheets[0]) / (General::tileSize*General::scale);
-					int tx = t.number % tw;
-					int ty = t.number / tw;
+					int tx, ty;
+					if (t.sheet < 0 || t.number < 0) {
+						tx = ty = -1;
+					}
+					else {
+						int tw = al_get_bitmap_width(tileSheets[0]) / (General::tileSize*General::scale);
+						tx = t.number % tw;
+						ty = t.number / tw;
+					}
 					al_fputc(f, tx);
 					al_fputc(f, ty);
 					al_fputc(f, t.sheet);
