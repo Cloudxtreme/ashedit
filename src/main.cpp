@@ -511,9 +511,11 @@ int main(int argc, char **argv)
 	}
 
 	if (argc > 1) {
+		tile_load_path = argv[1];
 		loadTileSheets(argv[1]);
 	}
 	else {
+		tile_load_path = ".";
 		loadTileSheets(".");
 	}
 	
