@@ -1647,6 +1647,10 @@ public:
 		int x, y;
 	};
 
+	struct Group {
+		int layer, x, y, w, h;
+	};
+
 	bool getRecording(void) {
 		return recording;
 	}
@@ -1657,6 +1661,10 @@ public:
 
 	int getLayers(void) {
 		return layers;
+	}
+
+	std::vector<Group> &getGroups() {
+		return groups;
 	}
 
 	_Tile createEmpty_Tile(void) {
@@ -1710,6 +1718,21 @@ public:
 		}
 		visible.erase(visible.begin() + i);
 		layers--;
+
+		for (size_t j = 0; j < groups.size();) {
+			Group &g = groups[j];
+			if (g.layer == i) {
+				groups.erase(groups.begin() + j);
+			}
+			else {
+				if (g.layer > i) {
+					g.layer--;
+				}
+				j++;
+			}
+		}
+
+		changed = true;
 	}
 
 	void insertLayer(int i) {
@@ -1734,6 +1757,15 @@ public:
 		else
 			it = visible.begin() + i;
 		visible.insert(it, true);
+
+		for (size_t j = 0; j < groups.size(); j++) {
+			Group &g = groups[j];
+			if (g.layer >= i) {
+				g.layer++;
+			}
+		}
+
+		changed = true;
 	}
 
 	void deleteRow(int i) {
@@ -1741,6 +1773,18 @@ public:
 		push_undo();
 		tiles.erase(tiles.begin() + i);
 		resizeScrollpane();
+
+		for (size_t j = 0; j < groups.size(); j++) {
+			Group &g = groups[j];
+			if (g.y > i) {
+				g.y--;
+			}
+			else if (i >= g.y && i < g.y+g.h) {
+				g.h--;
+			}
+		}
+
+		changed = true;
 	}
 
 	void deleteColumn(int i) {
@@ -1750,6 +1794,18 @@ public:
 			tiles[y].erase(tiles[y].begin() + i);
 		}
 		resizeScrollpane();
+
+		for (size_t j = 0; j < groups.size(); j++) {
+			Group &g = groups[j];
+			if (g.x > i) {
+				g.x--;
+			}
+			else if (i >= g.x && i < g.x+g.w) {
+				g.w--;
+			}
+		}
+
+		changed = true;
 	}
 
 	void insertRow(int i) {
@@ -1762,6 +1818,18 @@ public:
 			it = tiles.begin() + i;
 		tiles.insert(it, row);
 		resizeScrollpane();
+
+		for (size_t j = 0; j < groups.size(); j++) {
+			Group &g = groups[j];
+			if (g.y >= i) {
+				g.y++;
+			}
+			else if (i > g.y && i < g.y+g.h) {
+				g.h++;
+			}
+		}
+
+		changed = true;
 	}
 
 	void insertColumn(int i) {
@@ -1776,6 +1844,18 @@ public:
 			}
 		}
 		resizeScrollpane();
+
+		for (size_t j = 0; j < groups.size(); j++) {
+			Group &g = groups[j];
+			if (g.x >= i) {
+				g.x++;
+			}
+			else if (i > g.x && i < g.x+g.w) {
+				g.w++;
+			}
+		}
+
+		changed = true;
 	}
 
 	virtual void keyDown(int keycode) {
@@ -2003,6 +2083,25 @@ public:
 			mover_src_layer = layer;
 			mover_dest_layer = -1;
 			already_moved.clear();
+		}
+		else if (keycode == ALLEGRO_KEY_G) {
+			if (is_marquee_marked()) {
+				if (tgui::isKeyDown(ALLEGRO_KEY_ALT) || tgui::isKeyDown(ALLEGRO_KEY_ALTGR)) {
+					Group g = { layer, marquee_x1, marquee_y1, marquee_x2 - marquee_x1 + 1, marquee_y2 - marquee_y1 + 1};
+					for (size_t i = 0; i < groups.size(); i++) {
+						if (groups[i].layer == g.layer && groups[i].x == g.x && groups[i].y == g.y && groups[i].w == g.w && groups[i].h == g.h) {
+							groups.erase(groups.begin() + i);
+
+							break;
+						}
+					}
+				}
+				else {
+					Group g = { layer, marquee_x1, marquee_y1, marquee_x2 - marquee_x1 + 1, marquee_y2 - marquee_y1 + 1 };
+					groups.push_back(g);
+				}
+				changed = true;
+			}
 		}
 		if (using_mover && tool != TOOL_MOVER) {
 			already_moved.clear();
@@ -2503,6 +2602,18 @@ public:
 				}
 			}
 		}
+
+		int num_groups = al_fread16le(f);
+
+		for (int i = 0; i < num_groups; i++) {
+			int l = al_fgetc(f);
+			int x = al_fread16le(f);
+			int y = al_fread16le(f);
+			int w = al_fread16le(f);
+			int h = al_fread16le(f);
+			Group g = { l, x, y, w, h };
+			groups.push_back(g);
+		}
 #else // Crystal Picnic format
 		int w = al_fread32le(f);
 		int h = al_fread32le(f);
@@ -2618,6 +2729,17 @@ public:
 					al_fputc(f, t.solid);
 				}
 			}
+		}
+
+		al_fwrite16le(f, groups.size());
+
+		for (size_t i = 0; i < groups.size(); i++) {
+			Group &g = groups[i];
+			al_fputc(f, g.layer);
+			al_fwrite16le(f, g.x);
+			al_fwrite16le(f, g.y);
+			al_fwrite16le(f, g.w);
+			al_fwrite16le(f, g.h);
 		}
 
 		al_fclose(f);
@@ -2952,6 +3074,8 @@ protected:
 	int last_solid_y;
 
 	bool changed;
+
+	std::vector<Group> groups;
 };
 
 class A_Label : public tgui::TGUIWidget {

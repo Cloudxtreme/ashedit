@@ -289,6 +289,13 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 			al_map_rgba(0, 0, 0, 128), 2.0);
 	}
 
+	std::vector<A_Leveleditor::Group> &groups = levelEditor->getGroups();
+
+	for (size_t i = 0; i < groups.size(); i++) {
+		A_Leveleditor::Group &g = groups[i];
+		al_draw_rectangle(savedx + (g.x * General::tileSize * General::scale) - ox, savedy + (g.y * General::tileSize * General::scale) - oy, savedx + ((g.x + g.w) * General::tileSize * General::scale) - ox, savedy + ((g.y + g.h) * General::tileSize * General::scale) - oy, al_map_rgb(255, 0, 0), 1.0f);
+	}
+
 	if (levelEditor->getTool() == "Marquee") {
 		ALLEGRO_COLOR c;
 		float f = fmod(al_get_time(), 2);
@@ -394,6 +401,7 @@ void loadTileSheets(const char *path)
 		ALLEGRO_BITMAP *tmp = al_load_bitmap(al_path_cstr(items[i], ALLEGRO_NATIVE_PATH_SEP));
 		if (!tmp)
 			break;
+		al_convert_mask_to_alpha(tmp, al_map_rgb(255, 0, 255));
 		ALLEGRO_BITMAP *bmp = al_create_bitmap(
 			al_get_bitmap_width(tmp)*General::scale,
 			al_get_bitmap_height(tmp)*General::scale
@@ -768,7 +776,9 @@ int main(int argc, char **argv)
 						" Comma\n"
 						" Period\n"
 						" Slash\n"
-						" Space\n",
+						" Space\n"
+						" G\n"
+						" Alt-G\n",
 						al_color_name("white")
 					);
 					quickRefContent2 = new A_Label(
@@ -797,7 +807,9 @@ int main(int argc, char **argv)
 						"Copy (all layers with Ctrl)\n"
 						"Cut (all layers with Ctrl)\n"
 						"Paste\n"
-						"Anchor floating selection\n",
+						"Anchor floating selection\n"
+						"Add a group (uses layer and marquee)\n"
+						"Delete a group (uses layer and marquee)\n",
 						al_color_name("white")
 					);
 					quickRefContent1->setX(5);
