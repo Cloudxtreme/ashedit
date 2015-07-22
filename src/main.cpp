@@ -26,6 +26,9 @@ enum {
    SCALE_2_ID,
    SCALE_3_ID,
    SCALE_4_ID,
+   GROUP_TYPE_ID,
+   GROUP_OBJECT_ID,
+   GROUP_SHADOW_ID,
    HELP_ID,
    HELP_QUICK_REFERENCE_ID
 };
@@ -51,6 +54,13 @@ ALLEGRO_MENU_INFO main_menu_info[] = {
       { "&3x", SCALE_3_ID, 0, NULL },
       { "&4x", SCALE_4_ID, 0, NULL },
       ALLEGRO_END_OF_MENU,
+
+#ifdef MO3
+   ALLEGRO_START_OF_MENU("Group Type", GROUP_TYPE_ID),
+   		{ "Object", GROUP_OBJECT_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+   		{ "Shadow", GROUP_SHADOW_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+   		ALLEGRO_END_OF_MENU,
+#endif
 
    ALLEGRO_START_OF_MENU("&Help", HELP_ID),
       { "&Quick Reference", HELP_QUICK_REFERENCE_ID, 0, NULL },
@@ -293,7 +303,20 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 
 	for (size_t i = 0; i < groups.size(); i++) {
 		A_Leveleditor::Group &g = groups[i];
-		al_draw_rectangle(savedx + (g.x * General::tileSize * General::scale) - ox, savedy + (g.y * General::tileSize * General::scale) - oy, savedx + ((g.x + g.w) * General::tileSize * General::scale) - ox, savedy + ((g.y + g.h) * General::tileSize * General::scale) - oy, al_map_rgb(255, 0, 0), 1.0f);
+		ALLEGRO_COLOR colour;
+		if (g.type == 0) {
+			colour = al_map_rgb(255, 0, 0);
+		}
+		else if (g.type == 1) {
+			colour = al_map_rgb(0, 255, 0);
+		}
+		else if (g.type == 2) {
+			colour = al_map_rgb(0, 0, 255);
+		}
+		else if (g.type == 3) {
+			colour = al_map_rgb(0, 255, 255);
+		}
+		al_draw_rectangle(savedx + (g.x * General::tileSize * General::scale) - ox, savedy + (g.y * General::tileSize * General::scale) - oy, savedx + ((g.x + g.w) * General::tileSize * General::scale) - ox, savedy + ((g.y + g.h) * General::tileSize * General::scale) - oy, colour, 1.0f);
 	}
 
 	if (levelEditor->getTool() == "Marquee") {
@@ -745,6 +768,16 @@ int main(int argc, char **argv)
 					levelEditor->resizeScrollpane();
 					reloadTiles();
 				}
+#ifdef MO3
+				else if (event.user.data1 == GROUP_OBJECT_ID || event.user.data1 == GROUP_SHADOW_ID) {
+					bool object_checked = al_get_menu_item_flags(menu, GROUP_OBJECT_ID) & ALLEGRO_MENU_ITEM_CHECKED;
+					bool shadow_checked = al_get_menu_item_flags(menu, GROUP_SHADOW_ID) & ALLEGRO_MENU_ITEM_CHECKED;
+					int group_type = 0;
+					if (object_checked) group_type |= 1;
+					if (shadow_checked) group_type |= 2;
+					levelEditor->set_group_type(group_type);
+				}
+#endif
 				else if (event.user.data1 == HELP_QUICK_REFERENCE_ID) {
 					quickRefFrame = new A_Frame(al_color_name("blue"), 450, 450);
 					quickRefFrame->setPosition(50, 50);

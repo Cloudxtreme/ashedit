@@ -1648,7 +1648,7 @@ public:
 	};
 
 	struct Group {
-		int layer, x, y, w, h;
+		int type, layer, x, y, w, h;
 	};
 
 	bool getRecording(void) {
@@ -2087,7 +2087,7 @@ public:
 		else if (keycode == ALLEGRO_KEY_G) {
 			if (is_marquee_marked()) {
 				if (tgui::isKeyDown(ALLEGRO_KEY_ALT) || tgui::isKeyDown(ALLEGRO_KEY_ALTGR)) {
-					Group g = { layer, marquee_x1, marquee_y1, marquee_x2 - marquee_x1 + 1, marquee_y2 - marquee_y1 + 1};
+					Group g = { group_type, layer, marquee_x1, marquee_y1, marquee_x2 - marquee_x1 + 1, marquee_y2 - marquee_y1 + 1};
 					for (size_t i = 0; i < groups.size(); i++) {
 						if (groups[i].layer == g.layer && groups[i].x == g.x && groups[i].y == g.y && groups[i].w == g.w && groups[i].h == g.h) {
 							groups.erase(groups.begin() + i);
@@ -2097,8 +2097,18 @@ public:
 					}
 				}
 				else {
-					Group g = { layer, marquee_x1, marquee_y1, marquee_x2 - marquee_x1 + 1, marquee_y2 - marquee_y1 + 1 };
-					groups.push_back(g);
+					bool found = false;
+					Group g = { group_type, layer, marquee_x1, marquee_y1, marquee_x2 - marquee_x1 + 1, marquee_y2 - marquee_y1 + 1};
+					for (size_t i = 0; i < groups.size(); i++) {
+						if (groups[i].layer == g.layer && groups[i].x == g.x && groups[i].y == g.y && groups[i].w == g.w && groups[i].h == g.h) {
+							found = true;
+							groups[i].type = group_type;
+							break;
+						}
+					}
+					if (!found) {
+						groups.push_back(g);
+					}
 				}
 				changed = true;
 			}
@@ -2532,6 +2542,8 @@ public:
 	}
 
 	void load(std::string filename) {
+		groups.clear();
+
 		const char *cFilename = filename.c_str();
 
 		ALLEGRO_FILE *f = al_fopen(cFilename, "rb");
@@ -2606,12 +2618,13 @@ public:
 		int num_groups = al_fread16le(f);
 
 		for (int i = 0; i < num_groups; i++) {
+			int t = al_fgetc(f);
 			int l = al_fgetc(f);
 			int x = al_fread16le(f);
 			int y = al_fread16le(f);
 			int w = al_fread16le(f);
 			int h = al_fread16le(f);
-			Group g = { l, x, y, w, h };
+			Group g = { t, l, x, y, w, h };
 			groups.push_back(g);
 		}
 #else // Crystal Picnic format
@@ -2735,6 +2748,7 @@ public:
 
 		for (size_t i = 0; i < groups.size(); i++) {
 			Group &g = groups[i];
+			al_fputc(f, g.type);
 			al_fputc(f, g.layer);
 			al_fwrite16le(f, g.x);
 			al_fwrite16le(f, g.y);
@@ -2903,6 +2917,10 @@ public:
 #endif
 	}
 
+	void set_group_type(int type) {
+		group_type = type;
+	}
+
 	A_Leveleditor(drawCallback callback, int layers, A_Tileselector *ts) :
 		A_Canvas(callback),
 		layers(layers),
@@ -2922,7 +2940,8 @@ public:
 		marquee_buffer_filled(false),
 		marquee_floating(false),
 		dragging_marquee(false),
-		changed(false)
+		changed(false),
+		group_type(0)
 	{
 		size(General::areaSize, General::areaSize);
 		loadSavePath = al_create_path("");
@@ -3076,6 +3095,7 @@ protected:
 	bool changed;
 
 	std::vector<Group> groups;
+	int group_type;
 };
 
 class A_Label : public tgui::TGUIWidget {
