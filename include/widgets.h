@@ -1758,10 +1758,12 @@ public:
 			it = visible.begin() + i;
 		visible.insert(it, true);
 
-		for (size_t j = 0; j < groups.size(); j++) {
-			Group &g = groups[j];
-			if (g.layer >= i) {
-				g.layer++;
+		if (i >= 0) {
+			for (size_t j = 0; j < groups.size(); j++) {
+				Group &g = groups[j];
+				if (g.layer >= i) {
+					g.layer++;
+				}
 			}
 		}
 
