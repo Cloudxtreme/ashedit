@@ -16,6 +16,7 @@ enum {
    FILE_OPEN_ID,
    FILE_SAVE_ID,
    FILE_SAVE_AS_ID,
+   FILE_RELOAD_TILES_ID,
    FILE_LOAD_TILES_ID,
    FILE_EXIT_ID,
    EDIT_ID,
@@ -43,7 +44,8 @@ ALLEGRO_MENU_INFO main_menu_info[] = {
       { "&Open", FILE_OPEN_ID, 0, NULL },
       { "&Save", FILE_SAVE_ID, 0, NULL },
       { "Save As...", FILE_SAVE_AS_ID, 0, NULL },
-      { "Load Tiles", FILE_LOAD_TILES_ID, 0, NULL },
+      { "Reload Tiles", FILE_RELOAD_TILES_ID, 0, NULL },
+      { "Load Tiles...", FILE_LOAD_TILES_ID, 0, NULL },
       ALLEGRO_MENU_SEPARATOR,
       { "E&xit", FILE_EXIT_ID, 0, NULL },
       ALLEGRO_END_OF_MENU,
@@ -734,11 +736,21 @@ int main(int argc, char **argv)
 					levelEditor->save(true);
 					setTitle();
 				}
+				else if (event.user.data1 == FILE_RELOAD_TILES_ID) {
+					loadTileSheets(tile_load_path.c_str());
+
+					if (tileSheets.size()) {
+						tileScrollpane->setScrollSize(
+							al_get_bitmap_width(tileSheets[0]),
+							al_get_bitmap_height(tileSheets[0])
+						);
+					}
+				}
 				else if (event.user.data1 == FILE_LOAD_TILES_ID) {
 					const char *start = argc > 1 ? argv[1] : al_get_current_directory();
 					tile_load_path = selectDir(start);
 					loadTileSheets(tile_load_path.c_str());
-					
+
 					if (tileSheets.size()) {
 						tileScrollpane->setScrollSize(
 							al_get_bitmap_width(tileSheets[0]),
