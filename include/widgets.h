@@ -2174,14 +2174,22 @@ public:
 		std::vector<Lvl>::iterator it = undoes.end() - 1;
 		tiles = *it;
 		undoes.erase(it);
+
+		std::vector< std::vector<Group> >::iterator it2 = group_undoes.end() - 1;
+		groups = *it2;
+		group_undoes.erase(it2);
 	}
 	
 	void doRedo(void) {
 		if (redoes.size() <= 0) return;
 		
 		push_undo();
+
 		tiles = redoes[redoes.size()-1];
 		redoes.erase(redoes.end()-1);
+
+		groups = group_redoes[group_redoes.size()-1];
+		group_redoes.erase(group_redoes.end()-1);
 	}
 	
 	void use_tool(int t, int x, int y, int l, int number, int sheet) {
@@ -2424,12 +2432,22 @@ public:
 		if (undoes.size() >= MAX_UNDO) {
 			undoes.erase(undoes.begin());
 		}
+
+		group_undoes.push_back(groups);
+		if (group_undoes.size() >= MAX_UNDO) {
+			group_undoes.erase(group_undoes.begin());
+		}
 	}
 
 	void push_redo(void) {
 		redoes.push_back(tiles);
 		if (redoes.size() >= MAX_UNDO) {
 			redoes.erase(redoes.begin());
+		}
+
+		group_redoes.push_back(groups);
+		if (group_redoes.size() >= MAX_UNDO) {
+			group_redoes.erase(group_redoes.begin());
 		}
 	}
 
@@ -2501,6 +2519,8 @@ public:
 
 		redoes.clear();
 
+		group_redoes.clear();
+
 		cloneStartX = -1;
 	}
 
@@ -2527,6 +2547,8 @@ public:
 		);
 
 		al_show_native_file_dialog(display, diag);
+
+		tgui::clearKeyState();
 
 		if (al_get_native_file_dialog_count(diag) != 1)
 			return "";
@@ -2657,6 +2679,9 @@ public:
 
 		undoes.clear();
 		redoes.clear();
+
+		group_undoes.clear();
+		group_redoes.clear();
 	}
 
 	void setLastSaveName(std::string name)
@@ -2738,6 +2763,7 @@ public:
 						tx = t.number % tw;
 						ty = t.number / tw;
 					}
+
 					al_fputc(f, tx);
 					al_fputc(f, ty);
 					al_fputc(f, t.sheet);
@@ -2792,6 +2818,8 @@ public:
 			"OK",
 			0
 		);
+
+		tgui::clearKeyState();
 	}
 
 	void load(void) {
@@ -2834,8 +2862,12 @@ public:
 	void createNew(void) {
 		size(General::areaSize, General::areaSize);
 		operatingFilename = "";
+
 		undoes.clear();
 		redoes.clear();
+
+		group_undoes.clear();
+		group_redoes.clear();
 	}
 
 	void record(void) {
@@ -3062,6 +3094,8 @@ protected:
 	Lvl tiles;
 	std::vector<Lvl> undoes;
 	std::vector<Lvl> redoes;
+	std::vector< std::vector<Group> > group_undoes;
+	std::vector< std::vector<Group> > group_redoes;
 	ALLEGRO_PATH *loadSavePath;
 	std::string lastSaveName;
 	std::string operatingFilename;
