@@ -32,7 +32,7 @@ if(WIN32)
 	endif()
 	if(USE_8X8)
 		set(FLAGS "${FLAGS} /DUSE_8X8")
-		set(FLAGS "${FLAGS} /DSCALE=4")
+		set(FLAGS "${FLAGS} /DSCALE=5")
 	endif()
 
 	if(CMAKE_BUILD_TYPE MATCHES Debug)
