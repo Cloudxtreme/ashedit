@@ -26,6 +26,11 @@ enum {
    SCALE_2_ID,
    SCALE_3_ID,
    SCALE_4_ID,
+   SCALE_5_ID,
+   SCALE_6_ID,
+   SCALE_7_ID,
+   SCALE_8_ID,
+   SCALE_9_ID,
    GROUP_TYPE_ID,
    GROUP_OBJECT_ID,
    GROUP_SHADOW_ID,
@@ -53,6 +58,11 @@ ALLEGRO_MENU_INFO main_menu_info[] = {
       { "&2x", SCALE_2_ID, 0, NULL },
       { "&3x", SCALE_3_ID, 0, NULL },
       { "&4x", SCALE_4_ID, 0, NULL },
+      { "&5x", SCALE_5_ID, 0, NULL },
+      { "&6x", SCALE_6_ID, 0, NULL },
+      { "&7x", SCALE_7_ID, 0, NULL },
+      { "&8x", SCALE_8_ID, 0, NULL },
+      { "&9x", SCALE_9_ID, 0, NULL },
       ALLEGRO_END_OF_MENU,
 
 #ifdef MO3
@@ -303,20 +313,22 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 
 	for (size_t i = 0; i < groups.size(); i++) {
 		A_Leveleditor::Group &g = groups[i];
-		ALLEGRO_COLOR colour;
-		if (g.type == 0) {
-			colour = al_map_rgb(255, 0, 0);
+		if (draw_solids[g.layer]) {
+			ALLEGRO_COLOR colour;
+			if (g.type == 0) {
+				colour = al_map_rgb(255, 0, 0);
+			}
+			else if (g.type == 1) {
+				colour = al_map_rgb(0, 255, 0);
+			}
+			else if (g.type == 2) {
+				colour = al_map_rgb(0, 0, 255);
+			}
+			else if (g.type == 3) {
+				colour = al_map_rgb(0, 255, 255);
+			}
+			al_draw_rectangle(savedx + (g.x * General::tileSize * General::scale) - ox, savedy + (g.y * General::tileSize * General::scale) - oy, savedx + ((g.x + g.w) * General::tileSize * General::scale) - ox, savedy + ((g.y + g.h) * General::tileSize * General::scale) - oy, colour, 1.0f);
 		}
-		else if (g.type == 1) {
-			colour = al_map_rgb(0, 255, 0);
-		}
-		else if (g.type == 2) {
-			colour = al_map_rgb(0, 0, 255);
-		}
-		else if (g.type == 3) {
-			colour = al_map_rgb(0, 255, 255);
-		}
-		al_draw_rectangle(savedx + (g.x * General::tileSize * General::scale) - ox, savedy + (g.y * General::tileSize * General::scale) - oy, savedx + ((g.x + g.w) * General::tileSize * General::scale) - ox, savedy + ((g.y + g.h) * General::tileSize * General::scale) - oy, colour, 1.0f);
 	}
 
 	if (levelEditor->getTool() == "Marquee") {
@@ -363,7 +375,9 @@ std::string selectDir(const std::string &start)
 	tmp += std::string("/");
 	ALLEGRO_FILECHOOSER *diag = al_create_native_file_dialog(tmp.c_str(), "Select Tile Set", 0, ALLEGRO_FILECHOOSER_FOLDER | ALLEGRO_FILECHOOSER_FILE_MUST_EXIST);
 	al_show_native_file_dialog(display, diag);
-	
+
+	tgui::clearKeyState();
+
 	if (al_get_native_file_dialog_count(diag) != 1)
 		return "";
 	
@@ -627,6 +641,7 @@ int main(int argc, char **argv)
 				int ret;
 				if (levelEditor->getChanged()) {
 					ret = al_show_native_message_box(display, "Confirm Exit", "The level has changed!", "Really exit?", 0, ALLEGRO_MESSAGEBOX_YES_NO);
+					tgui::clearKeyState();
 				}
 				else {
 					ret = 1;
@@ -697,6 +712,7 @@ int main(int argc, char **argv)
 					int ret;
 					if (levelEditor->getChanged()) {
 						ret = al_show_native_message_box(display, "Warning", "The level has changed!", "Really load a new level?", 0, ALLEGRO_MESSAGEBOX_YES_NO);
+						tgui::clearKeyState();
 					}
 					else {
 						ret = 1;
@@ -734,6 +750,7 @@ int main(int argc, char **argv)
 					int ret;
 					if (levelEditor->getChanged()) {
 						ret = al_show_native_message_box(display, "Confirm Exit", "The level has changed!", "Really exit?", 0, ALLEGRO_MESSAGEBOX_YES_NO);
+						tgui::clearKeyState();
 					}
 					else {
 						ret = 1;
@@ -765,6 +782,31 @@ int main(int argc, char **argv)
 				}
 				else if (event.user.data1 == SCALE_4_ID) {
 					General::scale = 4;
+					levelEditor->resizeScrollpane();
+					reloadTiles();
+				}
+				else if (event.user.data1 == SCALE_5_ID) {
+					General::scale = 5;
+					levelEditor->resizeScrollpane();
+					reloadTiles();
+				}
+				else if (event.user.data1 == SCALE_6_ID) {
+					General::scale = 6;
+					levelEditor->resizeScrollpane();
+					reloadTiles();
+				}
+				else if (event.user.data1 == SCALE_7_ID) {
+					General::scale = 7;
+					levelEditor->resizeScrollpane();
+					reloadTiles();
+				}
+				else if (event.user.data1 == SCALE_8_ID) {
+					General::scale = 8;
+					levelEditor->resizeScrollpane();
+					reloadTiles();
+				}
+				else if (event.user.data1 == SCALE_9_ID) {
+					General::scale = 9;
 					levelEditor->resizeScrollpane();
 					reloadTiles();
 				}
@@ -834,7 +876,7 @@ int main(int argc, char **argv)
 						"Switch to fill tool (test all layers)\n"
 						"Start/stop recording macro\n"
 						"Toggle current layer drawing\n"
-						"Toggle current layer solids drawing\n"
+						"Toggle current layer solids/groups drawing\n"
 						"Save as PNG\n"
 						"Marquee tool\n"
 						"Copy (all layers with Ctrl)\n"
