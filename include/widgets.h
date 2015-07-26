@@ -1632,10 +1632,9 @@ public:
 	static const int TOOL_MACRO = 3;
 	static const int TOOL_CLONE = 4;
 	static const int TOOL_MOVER = 5;
-	static const int TOOL_FILL_CURRENT = 6;
-	static const int TOOL_FILL_ALL = 7;
-	static const int TOOL_RAISER = 8;
-	static const int TOOL_MARQUEE = 9;
+	static const int TOOL_FILL = 6;
+	static const int TOOL_RAISER = 7;
+	static const int TOOL_MARQUEE = 8;
 
 	struct _TilePlusPlus {
 		int x, y, layer, number, sheet;
@@ -1920,15 +1919,17 @@ public:
 			}
 		}
 		else if (keycode == ALLEGRO_KEY_Z) {
-			if ((tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) && (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL))) {
-				doRedo();
-			}
-			else if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
+			if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
 				doUndo();
 			}
 			else {
 				tool = TOOL_RAISER;
 				already_moved.clear();
+			}
+		}
+		else if (keycode == ALLEGRO_KEY_Y) {
+			if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
+				doRedo();
 			}
 		}
 		else if (keycode == ALLEGRO_KEY_T) {
@@ -1938,17 +1939,22 @@ public:
 			if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
 				if (statusX < 0 || statusY < 0)
 					return;
-				if (tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) {
-					// insert row after cursor
-					if (statusY == (int)tiles.size()-1)
-						insertRow(-1);
-					else
-						insertRow(statusY+1);
-				}
-				else {
-					// insert row before cursor
-					insertRow(statusY);
-				}
+				// insert row before cursor
+				insertRow(statusY);
+			}
+			else if (tgui::isKeyDown(ALLEGRO_KEY_ALT) || tgui::isKeyDown(ALLEGRO_KEY_ALTGR)) {
+				if (statusX < 0 || statusY < 0)
+					return;
+				// insert row after cursor
+				if (statusY == (int)tiles.size()-1)
+					insertRow(-1);
+				else
+					insertRow(statusY+1);
+			}
+			else if (tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) {
+				if (statusX < 0 || statusY < 0)
+					return;
+				deleteRow(statusY);
 			}
 			else {
 				record();
@@ -1958,32 +1964,23 @@ public:
 			if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
 				if (statusX < 0 || statusY < 0)
 					return;
-				if (tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) {
-					// insert row after cursor
-					if (statusX == (int)tiles[0].size()-1)
-						insertColumn(-1);
-					else
-						insertColumn(statusX+1);
-				}
-				else {
-					// insert row before cursor
-					insertColumn(statusX);
-				}
+				// insert row before cursor
+				insertColumn(statusX);
+			}
+			else if (tgui::isKeyDown(ALLEGRO_KEY_ALT) || tgui::isKeyDown(ALLEGRO_KEY_ALTGR)) {
+				// insert row after cursor
+				if (statusX == (int)tiles[0].size()-1)
+					insertColumn(-1);
+				else
+					insertColumn(statusX+1);
+			}
+			else if (tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) {
+				if (statusX < 0 || statusY < 0)
+					return;
+				deleteColumn(statusX);
 			}
 			else {
 				tool = TOOL_CLEAR;
-			}
-		}
-		else if (keycode == ALLEGRO_KEY_DELETE) {
-			if (statusX < 0 || statusY < 0)
-				return;
-			if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
-				if (tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) {
-					deleteColumn(statusX);
-				}
-				else {
-					deleteRow(statusY);
-				}
 			}
 		}
 		else if (keycode == ALLEGRO_KEY_B) {
@@ -2069,30 +2066,23 @@ public:
 
 		}
 		else if (keycode == ALLEGRO_KEY_F) {
-			if (tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) {
-				tool = TOOL_FILL_ALL;
-			}
-			else {
-				tool = TOOL_FILL_CURRENT;
-			}
+			tool = TOOL_FILL;
 		}
 		else if (keycode == ALLEGRO_KEY_L && General::can_add_and_delete_layers) {
 			if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
-				if (tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) {
-					if (layer == layers-1)
-						insertLayer(-1);
-					else
-						insertLayer(layer+1);
-				}
-				else if (tgui::isKeyDown(ALLEGRO_KEY_ALT) || tgui::isKeyDown(ALLEGRO_KEY_ALTGR)) {
-					deleteLayer(layer);
-				}
-				else {
-					insertLayer(layer);
-				}
-				layer = 0;
-				marquee_buffer_filled = false;
+				insertLayer(layer);
 			}
+			else if (tgui::isKeyDown(ALLEGRO_KEY_ALT) || tgui::isKeyDown(ALLEGRO_KEY_ALTGR)) {
+				if (layer == layers-1)
+					insertLayer(-1);
+				else
+					insertLayer(layer+1);
+			}
+			else if (tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) {
+				deleteLayer(layer);
+			}
+			layer = 0;
+			marquee_buffer_filled = false;
 		}
 		else if (keycode == ALLEGRO_KEY_K) {
 			if (statusX >= 0) {
@@ -2160,10 +2150,8 @@ public:
 				return "Clone";
 			case TOOL_MOVER:
 				return "Mover";
-			case TOOL_FILL_CURRENT:
-				return "Fill Current";
-			case TOOL_FILL_ALL:
-				return "Fill All";
+			case TOOL_FILL:
+				return "Fill";
 			case TOOL_RAISER:
 				return "Raiser";
 			case TOOL_MARQUEE:
@@ -2254,26 +2242,27 @@ public:
 					changed = true;
 				}
 				break;
-			case TOOL_FILL_ALL:
-				fill_all = true;
-			case TOOL_FILL_CURRENT: {
-				Point p;
-				std::stack<Point> stack;
-				int tile_num = tiles[y][x][l].number;
-				int tile_sheet = tiles[y][x][l].sheet;
-	
-				p.x = x;
-				p.y = y;
-				stack.push(p);
+			case TOOL_FILL: {
+					if (tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT)) {
+						fill_all = true;
+					}
+					Point p;
+					std::stack<Point> stack;
+					int tile_num = tiles[y][x][l].number;
+					int tile_sheet = tiles[y][x][l].sheet;
+		
+					p.x = x;
+					p.y = y;
+					stack.push(p);
 
-				while (stack.size() > 0) {
-					p = stack.top();
-					stack.pop();
+					while (stack.size() > 0) {
+						p = stack.top();
+						stack.pop();
 
-					fill(x, y, l, p.x, p.y, tile_num, tile_sheet, stack, fill_all);
+						fill(x, y, l, p.x, p.y, tile_num, tile_sheet, stack, fill_all);
+					}
 				}
 				break;
-			}
 			case TOOL_RAISER: {
 				if (std::find(already_moved.begin(), already_moved.end(), pr) == already_moved.end()) {
 					already_moved.push_back(pr);
