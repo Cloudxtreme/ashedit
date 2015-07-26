@@ -46,7 +46,7 @@ ALLEGRO_MENU_INFO main_menu_info[] = {
 	ALLEGRO_START_OF_MENU("&File", FILE_ID),
 		{ "&New", FILE_NEW_ID, 0, NULL },
 		{ "&Open", FILE_OPEN_ID, 0, NULL },
-		{ "&Save", FILE_SAVE_ID, 0, NULL },
+		{ "&Save (Ctrl-S)", FILE_SAVE_ID, 0, NULL },
 		{ "Save &As...", FILE_SAVE_AS_ID, 0, NULL },
 		{ "&Reload Tiles", FILE_RELOAD_TILES_ID, 0, NULL },
 		{ "&Load Tiles...", FILE_LOAD_TILES_ID, 0, NULL },
@@ -55,8 +55,8 @@ ALLEGRO_MENU_INFO main_menu_info[] = {
 		ALLEGRO_END_OF_MENU,
 
 	ALLEGRO_START_OF_MENU("&Edit", EDIT_ID),
-		{ "&Undo", EDIT_UNDO_ID, 0, NULL },
-		{ "&Redo", EDIT_REDO_ID, 0, NULL },
+		{ "&Undo (Ctrl-Z)", EDIT_UNDO_ID, 0, NULL },
+		{ "&Redo (Ctrl-Y)", EDIT_REDO_ID, 0, NULL },
 			ALLEGRO_END_OF_MENU,
 
 	ALLEGRO_START_OF_MENU("S&cale", SCALE_ID),
@@ -879,7 +879,7 @@ int main(int argc, char **argv)
 				}
 #endif
 				else if (event.user.data1 == HELP_QUICK_REFERENCE_ID) {
-					quickRefFrame = new A_Frame(al_color_name("blue"), 400, 500);
+					quickRefFrame = new A_Frame(al_color_name("blue"), 400, 480);
 					quickRefFrame->setPosition(50, 50);
 					quickRefSplitter = new A_Splitter(A_Splitter::SPLIT_HORIZONTAL);
 					quickRefBottomSplitter = new A_Splitter(A_Splitter::SPLIT_VERTICAL);
@@ -892,7 +892,6 @@ int main(int argc, char **argv)
 						"  V\n"
 						"  F\n"
 						"  Q\n"
-						"  Shift-F\n"
 						"  Comma\n"
 						"  Period\n"
 						"  Slash\n"
@@ -905,18 +904,18 @@ int main(int argc, char **argv)
 						"  R\n"
 						"\n"
 						"  T\n"
-						"  Ctrl-Alt-T\n"
+						"  Ctrl-T\n"
 						"  Alt-T\n"
 						"\n"
-						"  Ctrl-R\n"
-						"  Shift-Ctrl-R\n"
 						"  Ctrl-C\n"
-						"  Shift-Ctrl-C\n"
-						"  Ctrl-Delete\n"
-						"  Shift-Ctrl-Delete\n"
+						"  Alt-C\n"
+						"  Shift-C\n"
+						"  Ctrl-R\n"
+						"  Alt-R\n"
+						"  Shift-R\n"
 						"  Ctrl-L\n"
-						"  Shift-Ctrl-L\n"
-						"  Ctrl-Alt-L\n"
+						"  Alt-L\n"
+						"  Shift-L\n"
 						"\n"
 						"  Enter\n",
 						al_color_name("white")
@@ -928,11 +927,10 @@ int main(int argc, char **argv)
 						"Switch to the macro tool\n"
 						"Switch to the clone tool\n"
 						"Switch to the layer mover tool\n"
-						"Switch to fill tool (test current layer)\n"
-						"Switch to fill tool (test all layers)\n"
+						"Switch to fill tool (shift tests all layers)\n"
 						"Switch to the marquee tool\n"
-						"Copy (Marquee, all layers with Ctrl)\n"
-						"Cut (Marquee, all layers with Ctrl)\n"
+						"Copy (marquee, all layers with Ctrl)\n"
+						"Cut (marquee, all layers with Ctrl)\n"
 						"Paste\n"
 						"Anchor floating selection\n"
 						"\n"
@@ -941,15 +939,17 @@ int main(int argc, char **argv)
 						"Start/stop recording macro\n"
 						"\n"
 						"Toggle current layer drawing\n"
-						"Toggle current layer groups drawing\n"
 						"Toggle current layer solids drawing\n"
+#ifdef SUPPORT_GROUPS
+						"Toggle current layer groups drawing\n"
+#endif
 						"\n"
-						"Insert row before cursor\n"
-						"Insert row after cursor\n"
 						"Insert column before cursor\n"
 						"Insert column after cursor\n"
-						"Delete row\n"
 						"Delete column\n"
+						"Insert row before cursor\n"
+						"Insert row after cursor\n"
+						"Delete row\n"
 						"Insert layer before current layer\n"
 						"Insert layer after current layer\n"
 						"Delete current layer\n"
