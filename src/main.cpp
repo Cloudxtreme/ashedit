@@ -46,7 +46,7 @@ ALLEGRO_MENU_INFO main_menu_info[] = {
 	ALLEGRO_START_OF_MENU("&File", FILE_ID),
 		{ "&New", FILE_NEW_ID, 0, NULL },
 		{ "&Open", FILE_OPEN_ID, 0, NULL },
-		{ "&Save (Ctrl-S)", FILE_SAVE_ID, 0, NULL },
+		{ "&Save\t(Ctrl+S)", FILE_SAVE_ID, 0, NULL },
 		{ "Save &As...", FILE_SAVE_AS_ID, 0, NULL },
 		{ "&Reload Tiles", FILE_RELOAD_TILES_ID, 0, NULL },
 		{ "&Load Tiles...", FILE_LOAD_TILES_ID, 0, NULL },
@@ -55,8 +55,8 @@ ALLEGRO_MENU_INFO main_menu_info[] = {
 		ALLEGRO_END_OF_MENU,
 
 	ALLEGRO_START_OF_MENU("&Edit", EDIT_ID),
-		{ "&Undo (Ctrl-Z)", EDIT_UNDO_ID, 0, NULL },
-		{ "&Redo (Ctrl-Y)", EDIT_REDO_ID, 0, NULL },
+		{ "&Undo\t(Ctrl+Z)", EDIT_UNDO_ID, 0, NULL },
+		{ "&Redo\t(Ctrl+Y)", EDIT_REDO_ID, 0, NULL },
 			ALLEGRO_END_OF_MENU,
 
 	ALLEGRO_START_OF_MENU("S&cale", SCALE_ID),
@@ -80,7 +80,7 @@ ALLEGRO_MENU_INFO main_menu_info[] = {
 #endif
 
 	ALLEGRO_START_OF_MENU("&Help", HELP_ID),
-		{ "&Quick Reference", HELP_QUICK_REFERENCE_ID, 0, NULL },
+		{ "&Quick Reference\t(Ctrl+H)", HELP_QUICK_REFERENCE_ID, 0, NULL },
 		ALLEGRO_END_OF_MENU,
 
 	ALLEGRO_END_OF_MENU
@@ -493,6 +493,107 @@ static void reloadTiles()
 	}
 }
 
+static void add_help()
+{
+	if (quickRefFrame != NULL) {
+		return;
+	}
+
+	quickRefFrame = new A_Frame(al_color_name("blue"), 400, 480);
+	quickRefFrame->setPosition(50, 50);
+	quickRefSplitter = new A_Splitter(A_Splitter::SPLIT_HORIZONTAL);
+	quickRefBottomSplitter = new A_Splitter(A_Splitter::SPLIT_VERTICAL);
+	quickRefContent1 = new A_Label(
+		"  B\n"
+		"  C\n"
+		"  S\n"
+		"  M\n"
+		"  K\n"
+		"  V\n"
+		"  F\n"
+		"  Q\n"
+		"  Comma\n"
+		"  Period\n"
+		"  Slash\n"
+		"  Space\n"
+		"\n"
+#ifdef SUPPORT_GROUPS
+		"  G\n"
+		"  Alt-G\n"
+#endif
+		"  R\n"
+		"\n"
+		"  T\n"
+		"  Ctrl-T\n"
+		"  Alt-T\n"
+		"\n"
+		"  Ctrl-C\n"
+		"  Alt-C\n"
+		"  Shift-C\n"
+		"  Ctrl-R\n"
+		"  Alt-R\n"
+		"  Shift-R\n"
+		"  Ctrl-L\n"
+		"  Alt-L\n"
+		"  Shift-L\n"
+		"\n"
+		"  Enter\n",
+		al_color_name("white")
+	);
+	quickRefContent2 = new A_Label(
+		"Switch to the brush tool\n"
+		"Switch to the clear tool\n"
+		"Switch to the solids tool\n"
+		"Switch to the macro tool\n"
+		"Switch to the clone tool\n"
+		"Switch to the layer mover tool\n"
+		"Switch to fill tool (shift tests all layers)\n"
+		"Switch to the marquee tool\n"
+		"Copy (marquee, all layers with Ctrl)\n"
+		"Cut (marquee, all layers with Ctrl)\n"
+		"Paste\n"
+		"Anchor floating selection\n"
+		"\n"
+		"Add a group (using layer and marquee)\n"
+		"Delete a group (using layer and marquee)\n"
+		"Start/stop recording macro\n"
+		"\n"
+		"Toggle current layer drawing\n"
+		"Toggle current layer solids drawing\n"
+#ifdef SUPPORT_GROUPS
+		"Toggle current layer groups drawing\n"
+#endif
+		"\n"
+		"Insert column before cursor\n"
+		"Insert column after cursor\n"
+		"Delete column\n"
+		"Insert row before cursor\n"
+		"Insert row after cursor\n"
+		"Delete row\n"
+		"Insert layer before current layer\n"
+		"Insert layer after current layer\n"
+		"Delete current layer\n"
+		"\n"
+		"Save as PNG (ashedit-save-####.png)\n",
+		al_color_name("white")
+	);
+	quickRefContent1->setX(5);
+	quickRefContent1->setY(5);
+	quickRefContent2->setY(5);
+	quickRefTitlebar = new A_Titlebar(quickRefFrame, "Quick Reference", al_color_name("cyan"), A_Titlebar::CLOSE_BUTTON);
+	quickRefSplitter->addToFirstPane(quickRefTitlebar);
+	quickRefSplitter->addToSecondPane(quickRefBottomSplitter);
+	quickRefBottomSplitter->addToFirstPane(quickRefContent1);
+	quickRefBottomSplitter->addToSecondPane(quickRefContent2);
+	tgui::setNewWidgetParent(NULL);
+	tgui::addWidget(quickRefFrame);
+	tgui::setNewWidgetParent(quickRefFrame);
+	tgui::addWidget(quickRefSplitter);
+	quickRefSplitter->setSplitSize(20, -1);
+	quickRefBottomSplitter->setSplitRatio(0.3, 0.7);
+	tgui::resize(NULL);
+}
+
 int main(int argc, char **argv)
 {
 	// Initialize Allegro
@@ -728,6 +829,9 @@ int main(int argc, char **argv)
 					levelEditor->toggleLayerVisibility(layer);
 				}
 			}
+			else if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_H && (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL))) {
+				add_help();
+			}
 			else if (event.type == ALLEGRO_EVENT_MENU_CLICK) {
 				if (event.user.data1 == FILE_NEW_ID) {
 					int ret;
@@ -879,99 +983,7 @@ int main(int argc, char **argv)
 				}
 #endif
 				else if (event.user.data1 == HELP_QUICK_REFERENCE_ID) {
-					quickRefFrame = new A_Frame(al_color_name("blue"), 400, 480);
-					quickRefFrame->setPosition(50, 50);
-					quickRefSplitter = new A_Splitter(A_Splitter::SPLIT_HORIZONTAL);
-					quickRefBottomSplitter = new A_Splitter(A_Splitter::SPLIT_VERTICAL);
-					quickRefContent1 = new A_Label(
-						"  B\n"
-						"  C\n"
-						"  S\n"
-						"  M\n"
-						"  K\n"
-						"  V\n"
-						"  F\n"
-						"  Q\n"
-						"  Comma\n"
-						"  Period\n"
-						"  Slash\n"
-						"  Space\n"
-						"\n"
-#ifdef SUPPORT_GROUPS
-						"  G\n"
-						"  Alt-G\n"
-#endif
-						"  R\n"
-						"\n"
-						"  T\n"
-						"  Ctrl-T\n"
-						"  Alt-T\n"
-						"\n"
-						"  Ctrl-C\n"
-						"  Alt-C\n"
-						"  Shift-C\n"
-						"  Ctrl-R\n"
-						"  Alt-R\n"
-						"  Shift-R\n"
-						"  Ctrl-L\n"
-						"  Alt-L\n"
-						"  Shift-L\n"
-						"\n"
-						"  Enter\n",
-						al_color_name("white")
-					);
-					quickRefContent2 = new A_Label(
-						"Switch to the brush tool\n"
-						"Switch to the clear tool\n"
-						"Switch to the solids tool\n"
-						"Switch to the macro tool\n"
-						"Switch to the clone tool\n"
-						"Switch to the layer mover tool\n"
-						"Switch to fill tool (shift tests all layers)\n"
-						"Switch to the marquee tool\n"
-						"Copy (marquee, all layers with Ctrl)\n"
-						"Cut (marquee, all layers with Ctrl)\n"
-						"Paste\n"
-						"Anchor floating selection\n"
-						"\n"
-						"Add a group (using layer and marquee)\n"
-						"Delete a group (using layer and marquee)\n"
-						"Start/stop recording macro\n"
-						"\n"
-						"Toggle current layer drawing\n"
-						"Toggle current layer solids drawing\n"
-#ifdef SUPPORT_GROUPS
-						"Toggle current layer groups drawing\n"
-#endif
-						"\n"
-						"Insert column before cursor\n"
-						"Insert column after cursor\n"
-						"Delete column\n"
-						"Insert row before cursor\n"
-						"Insert row after cursor\n"
-						"Delete row\n"
-						"Insert layer before current layer\n"
-						"Insert layer after current layer\n"
-						"Delete current layer\n"
-						"\n"
-						"Save as PNG (ashedit-save-####.png)\n",
-						al_color_name("white")
-					);
-					quickRefContent1->setX(5);
-					quickRefContent1->setY(5);
-					quickRefContent2->setY(5);
-					quickRefTitlebar = new A_Titlebar(quickRefFrame, "Quick Reference", al_color_name("cyan"), A_Titlebar::CLOSE_BUTTON);
-					quickRefSplitter->addToFirstPane(quickRefTitlebar);
-					quickRefSplitter->addToSecondPane(quickRefBottomSplitter);
-					quickRefBottomSplitter->addToFirstPane(quickRefContent1);
-					quickRefBottomSplitter->addToSecondPane(quickRefContent2);
-					tgui::setNewWidgetParent(NULL);
-					tgui::addWidget(quickRefFrame);
-					tgui::setNewWidgetParent(quickRefFrame);
-					tgui::addWidget(quickRefSplitter);
-					quickRefSplitter->setSplitSize(20, -1);
-					quickRefBottomSplitter->setSplitRatio(0.3, 0.7);
-					tgui::resize(NULL);
+					add_help();
 				}
 			}
 			else if (event.type == ALLEGRO_GET_EVENT_TYPE('T', 'G', 'U', 'I')) {
