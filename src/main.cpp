@@ -72,7 +72,7 @@ ALLEGRO_MENU_INFO main_menu_info[] = {
 		{ "1&0x", SCALE_10_ID, 0, NULL },
 			ALLEGRO_END_OF_MENU,
 
-#ifdef MO3
+#ifdef SUPPORT_GROUPS
 	ALLEGRO_START_OF_MENU("Group Type", GROUP_TYPE_ID),
 		{ "&Object", GROUP_OBJECT_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 		{ "&Shadow", GROUP_SHADOW_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
@@ -97,7 +97,9 @@ static bool draw_yellow_and_purple = true;
 static A_Scrollpane *levelScrollpane;
 static int levelX = -1, levelY = -1;
 static A_Scrollpane *tileScrollpane;
-static std::vector<bool> draw_solids;
+
+std::vector<bool> draw_solids;
+std::vector<bool> draw_groups;
 
 static int mouse_x = 0, mouse_y = 0;
 
@@ -320,7 +322,7 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 
 	for (size_t i = 0; i < groups.size(); i++) {
 		A_Leveleditor::Group &g = groups[i];
-		if (draw_solids[g.layer]) {
+		if (draw_groups[g.layer] && g.layer == levelEditor->getCurrentLayer()) {
 			ALLEGRO_COLOR colour;
 			if (g.type == 0) {
 				colour = al_map_rgb(255, 0, 0);
@@ -606,6 +608,7 @@ int main(int argc, char **argv)
 	setTitle();
 	for (int i = 0; i < levelEditor->getNumLayers(); i++) {
 		draw_solids.push_back(true);
+		draw_groups.push_back(true);
 	}
 
 	tgui::setNewWidgetParent(0);
@@ -698,6 +701,10 @@ int main(int argc, char **argv)
 				//	al_unlock_bitmap(tileSheets[j]);
 				//}
 			}
+			else if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_T && tgui::isKeyDown(ALLEGRO_KEY_ALT) && (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL))) {
+				int layer = levelEditor->getCurrentLayer();
+				draw_groups[layer] = !draw_groups[layer];
+			}
 			else if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_T && tgui::isKeyDown(ALLEGRO_KEY_ALT)) {
 				int layer = levelEditor->getCurrentLayer();
 				draw_solids[layer] = !draw_solids[layer];
@@ -735,8 +742,10 @@ int main(int argc, char **argv)
 						levelEditor->new_level();
 						setTitle();
 						draw_solids.clear();
+						draw_groups.clear();
 						for (int i = 0; i < levelEditor->getNumLayers(); i++) {
 							draw_solids.push_back(true);
+							draw_groups.push_back(true);
 						}
 					}
 				}
@@ -753,8 +762,10 @@ int main(int argc, char **argv)
 						levelEditor->load();
 						setTitle();
 						draw_solids.clear();
+						draw_groups.clear();
 						for (int i = 0; i < levelEditor->getNumLayers(); i++) {
 							draw_solids.push_back(true);
+							draw_groups.push_back(true);
 						}
 					}
 				}
@@ -857,7 +868,7 @@ int main(int argc, char **argv)
 					levelEditor->resizeScrollpane();
 					reloadTiles();
 				}
-#ifdef MO3
+#ifdef SUPPORT_GROUPS
 				else if (event.user.data1 == GROUP_OBJECT_ID || event.user.data1 == GROUP_SHADOW_ID) {
 					bool object_checked = al_get_menu_item_flags(menu, GROUP_OBJECT_ID) & ALLEGRO_MENU_ITEM_CHECKED;
 					bool shadow_checked = al_get_menu_item_flags(menu, GROUP_SHADOW_ID) & ALLEGRO_MENU_ITEM_CHECKED;
@@ -868,42 +879,71 @@ int main(int argc, char **argv)
 				}
 #endif
 				else if (event.user.data1 == HELP_QUICK_REFERENCE_ID) {
-					quickRefFrame = new A_Frame(al_color_name("blue"), 450, 450);
+					quickRefFrame = new A_Frame(al_color_name("blue"), 400, 500);
 					quickRefFrame->setPosition(50, 50);
 					quickRefSplitter = new A_Splitter(A_Splitter::SPLIT_HORIZONTAL);
 					quickRefBottomSplitter = new A_Splitter(A_Splitter::SPLIT_VERTICAL);
 					quickRefContent1 = new A_Label(
-						" Ctrl-R\n"
-						" Shift-Ctrl-R\n"
-						" Ctrl-C\n"
-						" Shift-Ctrl-C\n"
-						" Ctrl-Delete\n"
-						" Shift-Ctrl-Delete\n"
-						" Ctrl-L\n"
-						" Shift-Ctrl-L\n"
-						" Ctrl-Alt-L\n"
-						" B\n"
-						" C\n"
-						" S\n"
-						" M\n"
-						" K\n"
-						" V\n"
-						" F\n"
-						" Shift-F\n"
-						" R\n"
-						" T\n"
-						" Alt-T\n"
-						" Enter\n"
-						" Q\n"
-						" Comma\n"
-						" Period\n"
-						" Slash\n"
-						" Space\n"
-						" G\n"
-						" Alt-G\n",
+						"  B\n"
+						"  C\n"
+						"  S\n"
+						"  M\n"
+						"  K\n"
+						"  V\n"
+						"  F\n"
+						"  Q\n"
+						"  Shift-F\n"
+						"  Comma\n"
+						"  Period\n"
+						"  Slash\n"
+						"  Space\n"
+						"\n"
+#ifdef SUPPORT_GROUPS
+						"  G\n"
+						"  Alt-G\n"
+#endif
+						"  R\n"
+						"\n"
+						"  T\n"
+						"  Ctrl-Alt-T\n"
+						"  Alt-T\n"
+						"\n"
+						"  Ctrl-R\n"
+						"  Shift-Ctrl-R\n"
+						"  Ctrl-C\n"
+						"  Shift-Ctrl-C\n"
+						"  Ctrl-Delete\n"
+						"  Shift-Ctrl-Delete\n"
+						"  Ctrl-L\n"
+						"  Shift-Ctrl-L\n"
+						"  Ctrl-Alt-L\n"
+						"\n"
+						"  Enter\n",
 						al_color_name("white")
 					);
 					quickRefContent2 = new A_Label(
+						"Switch to the brush tool\n"
+						"Switch to the clear tool\n"
+						"Switch to the solids tool\n"
+						"Switch to the macro tool\n"
+						"Switch to the clone tool\n"
+						"Switch to the layer mover tool\n"
+						"Switch to fill tool (test current layer)\n"
+						"Switch to fill tool (test all layers)\n"
+						"Switch to the marquee tool\n"
+						"Copy (Marquee, all layers with Ctrl)\n"
+						"Cut (Marquee, all layers with Ctrl)\n"
+						"Paste\n"
+						"Anchor floating selection\n"
+						"\n"
+						"Add a group (using layer and marquee)\n"
+						"Delete a group (using layer and marquee)\n"
+						"Start/stop recording macro\n"
+						"\n"
+						"Toggle current layer drawing\n"
+						"Toggle current layer groups drawing\n"
+						"Toggle current layer solids drawing\n"
+						"\n"
 						"Insert row before cursor\n"
 						"Insert row after cursor\n"
 						"Insert column before cursor\n"
@@ -913,25 +953,8 @@ int main(int argc, char **argv)
 						"Insert layer before current layer\n"
 						"Insert layer after current layer\n"
 						"Delete current layer\n"
-						"Switch to the brush tool\n"
-						"Switch to the clear tool\n"
-						"Switch to the solids tool\n"
-						"Switch to the macro tool\n"
-						"Switch to the clone tool\n"
-						"Switch to the layer mover tool\n"
-						"Switch to fill tool (test current layer)\n"
-						"Switch to fill tool (test all layers)\n"
-						"Start/stop recording macro\n"
-						"Toggle current layer drawing\n"
-						"Toggle current layer solids/groups drawing\n"
-						"Save as PNG\n"
-						"Marquee tool\n"
-						"Copy (all layers with Ctrl)\n"
-						"Cut (all layers with Ctrl)\n"
-						"Paste\n"
-						"Anchor floating selection\n"
-						"Add a group (uses layer and marquee)\n"
-						"Delete a group (uses layer and marquee)\n",
+						"\n"
+						"Save as PNG (ashedit-save-####.png)\n",
 						al_color_name("white")
 					);
 					quickRefContent1->setX(5);
