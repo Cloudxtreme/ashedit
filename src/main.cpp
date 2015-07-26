@@ -13,32 +13,33 @@
 #include "mouse_cursor.h"
 
 enum {
-   FILE_ID = 1,
-   FILE_NEW_ID,
-   FILE_OPEN_ID,
-   FILE_SAVE_ID,
-   FILE_SAVE_AS_ID,
-   FILE_RELOAD_TILES_ID,
-   FILE_LOAD_TILES_ID,
-   FILE_EXIT_ID,
-   EDIT_ID,
-   EDIT_UNDO_ID,
-   EDIT_REDO_ID,
-   SCALE_ID,
-   SCALE_1_ID,
-   SCALE_2_ID,
-   SCALE_3_ID,
-   SCALE_4_ID,
-   SCALE_5_ID,
-   SCALE_6_ID,
-   SCALE_7_ID,
-   SCALE_8_ID,
-   SCALE_9_ID,
-   GROUP_TYPE_ID,
-   GROUP_OBJECT_ID,
-   GROUP_SHADOW_ID,
-   HELP_ID,
-   HELP_QUICK_REFERENCE_ID
+	FILE_ID = 1,
+	FILE_NEW_ID,
+	FILE_OPEN_ID,
+	FILE_SAVE_ID,
+	FILE_SAVE_AS_ID,
+	FILE_RELOAD_TILES_ID,
+	FILE_LOAD_TILES_ID,
+	FILE_EXIT_ID,
+	EDIT_ID,
+	EDIT_UNDO_ID,
+	EDIT_REDO_ID,
+	SCALE_ID,
+	SCALE_1_ID,
+	SCALE_2_ID,
+	SCALE_3_ID,
+	SCALE_4_ID,
+	SCALE_5_ID,
+	SCALE_6_ID,
+	SCALE_7_ID,
+	SCALE_8_ID,
+	SCALE_9_ID,
+	SCALE_10_ID,
+	GROUP_TYPE_ID,
+	GROUP_OBJECT_ID,
+	GROUP_SHADOW_ID,
+	HELP_ID,
+	HELP_QUICK_REFERENCE_ID
 };
 
 ALLEGRO_MENU_INFO main_menu_info[] = {
@@ -68,6 +69,7 @@ ALLEGRO_MENU_INFO main_menu_info[] = {
 		{ "&7x", SCALE_7_ID, 0, NULL },
 		{ "&8x", SCALE_8_ID, 0, NULL },
 		{ "&9x", SCALE_9_ID, 0, NULL },
+		{ "1&0x", SCALE_10_ID, 0, NULL },
 			ALLEGRO_END_OF_MENU,
 
 #ifdef MO3
@@ -847,6 +849,11 @@ int main(int argc, char **argv)
 				}
 				else if (event.user.data1 == SCALE_9_ID) {
 					General::scale = 9;
+					levelEditor->resizeScrollpane();
+					reloadTiles();
+				}
+				else if (event.user.data1 == SCALE_10_ID) {
+					General::scale = 10;
 					levelEditor->resizeScrollpane();
 					reloadTiles();
 				}
