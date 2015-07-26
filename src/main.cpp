@@ -10,9 +10,11 @@
 #include <allegro5/allegro_memfile.h>
 
 #include "icon.h"
+#include "mouse_cursor.h"
 
 enum {
    FILE_ID = 1,
+   FILE_NEW_ID,
    FILE_OPEN_ID,
    FILE_SAVE_ID,
    FILE_SAVE_AS_ID,
@@ -40,45 +42,46 @@ enum {
 };
 
 ALLEGRO_MENU_INFO main_menu_info[] = {
-   ALLEGRO_START_OF_MENU("&File", FILE_ID),
-      { "&Open", FILE_OPEN_ID, 0, NULL },
-      { "&Save", FILE_SAVE_ID, 0, NULL },
-      { "Save As...", FILE_SAVE_AS_ID, 0, NULL },
-      { "Reload Tiles", FILE_RELOAD_TILES_ID, 0, NULL },
-      { "Load Tiles...", FILE_LOAD_TILES_ID, 0, NULL },
-      ALLEGRO_MENU_SEPARATOR,
-      { "E&xit", FILE_EXIT_ID, 0, NULL },
-      ALLEGRO_END_OF_MENU,
-   
-   ALLEGRO_START_OF_MENU("&Edit", EDIT_ID),
-      { "Undo", EDIT_UNDO_ID, 0, NULL },
-      { "Redo", EDIT_REDO_ID, 0, NULL },
-      ALLEGRO_END_OF_MENU,
+	ALLEGRO_START_OF_MENU("&File", FILE_ID),
+		{ "&New", FILE_NEW_ID, 0, NULL },
+		{ "&Open", FILE_OPEN_ID, 0, NULL },
+		{ "&Save", FILE_SAVE_ID, 0, NULL },
+		{ "Save &As...", FILE_SAVE_AS_ID, 0, NULL },
+		{ "&Reload Tiles", FILE_RELOAD_TILES_ID, 0, NULL },
+		{ "&Load Tiles...", FILE_LOAD_TILES_ID, 0, NULL },
+		ALLEGRO_MENU_SEPARATOR,
+		{ "E&xit", FILE_EXIT_ID, 0, NULL },
+		ALLEGRO_END_OF_MENU,
 
-   ALLEGRO_START_OF_MENU("S&cale", SCALE_ID),
-      { "&1x", SCALE_1_ID, 0, NULL },
-      { "&2x", SCALE_2_ID, 0, NULL },
-      { "&3x", SCALE_3_ID, 0, NULL },
-      { "&4x", SCALE_4_ID, 0, NULL },
-      { "&5x", SCALE_5_ID, 0, NULL },
-      { "&6x", SCALE_6_ID, 0, NULL },
-      { "&7x", SCALE_7_ID, 0, NULL },
-      { "&8x", SCALE_8_ID, 0, NULL },
-      { "&9x", SCALE_9_ID, 0, NULL },
-      ALLEGRO_END_OF_MENU,
+	ALLEGRO_START_OF_MENU("&Edit", EDIT_ID),
+		{ "&Undo", EDIT_UNDO_ID, 0, NULL },
+		{ "&Redo", EDIT_REDO_ID, 0, NULL },
+			ALLEGRO_END_OF_MENU,
+
+	ALLEGRO_START_OF_MENU("S&cale", SCALE_ID),
+		{ "&1x", SCALE_1_ID, 0, NULL },
+		{ "&2x", SCALE_2_ID, 0, NULL },
+		{ "&3x", SCALE_3_ID, 0, NULL },
+		{ "&4x", SCALE_4_ID, 0, NULL },
+		{ "&5x", SCALE_5_ID, 0, NULL },
+		{ "&6x", SCALE_6_ID, 0, NULL },
+		{ "&7x", SCALE_7_ID, 0, NULL },
+		{ "&8x", SCALE_8_ID, 0, NULL },
+		{ "&9x", SCALE_9_ID, 0, NULL },
+			ALLEGRO_END_OF_MENU,
 
 #ifdef MO3
-   ALLEGRO_START_OF_MENU("Group Type", GROUP_TYPE_ID),
-   		{ "Object", GROUP_OBJECT_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-   		{ "Shadow", GROUP_SHADOW_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-   		ALLEGRO_END_OF_MENU,
+	ALLEGRO_START_OF_MENU("Group Type", GROUP_TYPE_ID),
+		{ "&Object", GROUP_OBJECT_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+		{ "&Shadow", GROUP_SHADOW_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+		ALLEGRO_END_OF_MENU,
 #endif
 
-   ALLEGRO_START_OF_MENU("&Help", HELP_ID),
-      { "&Quick Reference", HELP_QUICK_REFERENCE_ID, 0, NULL },
-      ALLEGRO_END_OF_MENU,
+	ALLEGRO_START_OF_MENU("&Help", HELP_ID),
+		{ "&Quick Reference", HELP_QUICK_REFERENCE_ID, 0, NULL },
+		ALLEGRO_END_OF_MENU,
 
-   ALLEGRO_END_OF_MENU
+	ALLEGRO_END_OF_MENU
 };
 
 ALLEGRO_DISPLAY *display;
@@ -524,6 +527,13 @@ int main(int argc, char **argv)
 	al_destroy_bitmap(icon_bmp);
 	al_fclose(f);
 
+	f = al_open_memfile(mouse_cursor_png, sizeof(mouse_cursor_png), "rb");
+	ALLEGRO_BITMAP *mouse_cursor_bmp = al_load_bitmap_f(f, ".png");
+	ALLEGRO_MOUSE_CURSOR *mouse_cursor = al_create_mouse_cursor(mouse_cursor_bmp, 0, 0);
+	al_set_mouse_cursor(display, mouse_cursor);
+	al_destroy_bitmap(mouse_cursor_bmp);
+	al_fclose(f);
+
 	al_register_event_source(queue, al_get_mouse_event_source());
 	al_register_event_source(queue, al_get_keyboard_event_source());
 	al_register_event_source(queue, al_get_display_event_source(display));
@@ -710,7 +720,25 @@ int main(int argc, char **argv)
 				}
 			}
 			else if (event.type == ALLEGRO_EVENT_MENU_CLICK) {
-				if (event.user.data1 == FILE_OPEN_ID) {
+				if (event.user.data1 == FILE_NEW_ID) {
+					int ret;
+					if (levelEditor->getChanged()) {
+						ret = al_show_native_message_box(display, "Warning", "The level has changed!", "Really create a new level?", 0, ALLEGRO_MESSAGEBOX_YES_NO);
+						tgui::clearKeyState();
+					}
+					else {
+						ret = 1;
+					}
+					if (ret == 1) {
+						levelEditor->new_level();
+						setTitle();
+						draw_solids.clear();
+						for (int i = 0; i < levelEditor->getNumLayers(); i++) {
+							draw_solids.push_back(true);
+						}
+					}
+				}
+				else if (event.user.data1 == FILE_OPEN_ID) {
 					int ret;
 					if (levelEditor->getChanged()) {
 						ret = al_show_native_message_box(display, "Warning", "The level has changed!", "Really load a new level?", 0, ALLEGRO_MESSAGEBOX_YES_NO);
