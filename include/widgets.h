@@ -2452,6 +2452,10 @@ public:
 	}
 
 	virtual void mouseDown(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
+		if (tileSheets.size() == 0) {
+			return;
+		}
+
 		if (mb != 1) return;
 
 		if (rel_x >= 0) {
@@ -2955,6 +2959,18 @@ public:
 		group_type = type;
 	}
 
+	void new_level() {
+		tiles.clear();
+		groups.clear();
+		undoes.clear();
+		redoes.clear();
+		group_undoes.clear();
+		group_redoes.clear();
+		size(General::areaSize, General::areaSize);
+		loadSavePath = al_create_path("");
+		changed = false;
+	}
+
 	A_Leveleditor(drawCallback callback, int layers, A_Tileselector *ts) :
 		A_Canvas(callback),
 		layers(layers),
@@ -2974,11 +2990,9 @@ public:
 		marquee_buffer_filled(false),
 		marquee_floating(false),
 		dragging_marquee(false),
-		changed(false),
 		group_type(0)
 	{
-		size(General::areaSize, General::areaSize);
-		loadSavePath = al_create_path("");
+		new_level();
 	}
 
 	~A_Leveleditor(void) {
