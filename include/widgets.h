@@ -19,6 +19,9 @@
 extern ALLEGRO_DISPLAY *display;
 extern ALLEGRO_EVENT_QUEUE *queue;
 extern std::vector<ALLEGRO_BITMAP *> tileSheets;
+extern std::vector<bool> draw_solids;
+extern std::vector<bool> draw_groups;
+
 void setTitle();
 
 struct Point {
@@ -1732,6 +1735,10 @@ public:
 			}
 		}
 
+		draw_solids.erase(draw_solids.begin() + i);
+
+		draw_groups.erase(draw_groups.begin() + i);
+
 		changed = true;
 	}
 
@@ -1766,6 +1773,18 @@ public:
 				}
 			}
 		}
+
+		if (i < 0)
+			it = draw_solids.end();
+		else
+			it = draw_solids.begin() + i;
+		draw_solids.insert(it, true);
+
+		if (i < 0)
+			it = draw_groups.end();
+		else
+			it = draw_groups.begin() + i;
+		draw_groups.insert(it, true);
 
 		changed = true;
 	}
