@@ -391,6 +391,14 @@ std::string selectDir(const std::string &start)
 		return "";
 	
 	std::string path = al_get_native_file_dialog_path(diag, 0);
+
+#ifdef __linux__
+	int slash = strrchr(path.c_str(), '/') - path.c_str();
+	if (slash >= 0) {
+		path = path.substr(0, slash);
+	}
+#endif
+
 	al_destroy_native_file_dialog(diag);
 	return path;
 }
@@ -606,9 +614,15 @@ int main(int argc, char **argv)
 	al_init_primitives_addon();
 	al_init_native_dialog_addon();
 
-    al_init_user_event_source(&evtsrc);
+	al_init_user_event_source(&evtsrc);
  
+#ifdef ALLEGRO_GTK_TOPLEVEL
+	/* ALLEGRO_GTK_TOPLEVEL is necessary for menus with GTK. */
+	al_set_new_display_flags(ALLEGRO_RESIZABLE | ALLEGRO_GTK_TOPLEVEL);
+#else
 	al_set_new_display_flags(ALLEGRO_RESIZABLE);
+#endif
+
 	display = al_create_display(1200, 640);
 
 	ALLEGRO_MENU *menu = al_build_menu(main_menu_info);
