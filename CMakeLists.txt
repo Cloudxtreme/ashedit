@@ -70,6 +70,8 @@ else()
 	set(LIBRARIES "tgui2" "allegro_monolith-static")
 
 	if(APPLE)
+		set_target_properties(AshEdit PROPERTIES LINK_FLAGS "-framework Foundation -framework OpenGL -framework Cocoa -framework IOKit")
+		list(APPEND LIBRARIES "freetype")
 	else()
 		include(FindPkgConfig)
 		pkg_check_modules(GTK gtk+-2.0)
