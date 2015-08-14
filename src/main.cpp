@@ -38,6 +38,11 @@ enum {
 	GROUP_TYPE_ID,
 	GROUP_OBJECT_ID,
 	GROUP_SHADOW_ID,
+	GROUP_CHAIR_ANY_ID,
+	GROUP_CHAIR_NORTH_ID,
+	GROUP_CHAIR_EAST_ID,
+	GROUP_CHAIR_SOUTH_ID,
+	GROUP_CHAIR_WEST_ID,
 	HELP_ID,
 	HELP_QUICK_REFERENCE_ID
 };
@@ -76,6 +81,11 @@ ALLEGRO_MENU_INFO main_menu_info[] = {
 	ALLEGRO_START_OF_MENU("Group Type", GROUP_TYPE_ID),
 		{ "&Object", GROUP_OBJECT_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 		{ "&Shadow", GROUP_SHADOW_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+		{ "Chair (Any)", GROUP_CHAIR_ANY_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+		{ "Chair (North)", GROUP_CHAIR_NORTH_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+		{ "Chair (East)", GROUP_CHAIR_EAST_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+		{ "Chair (South)", GROUP_CHAIR_SOUTH_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+		{ "Chair (West)", GROUP_CHAIR_WEST_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 		ALLEGRO_END_OF_MENU,
 #endif
 
@@ -335,6 +345,9 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 			}
 			else if (g.type == 3) {
 				colour = al_map_rgb(0, 255, 255);
+			}
+			else {
+				colour = al_map_rgb(255, 255, 0);
 			}
 			al_draw_rectangle(savedx + (g.x * General::tileSize * General::scale) - ox, savedy + (g.y * General::tileSize * General::scale) - oy, savedx + ((g.x + g.w) * General::tileSize * General::scale) - ox, savedy + ((g.y + g.h) * General::tileSize * General::scale) - oy, colour, 1.0f);
 		}
@@ -816,11 +829,11 @@ int main(int argc, char **argv)
 				//	al_unlock_bitmap(tileSheets[j]);
 				//}
 			}
-			else if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_T && tgui::isKeyDown(ALLEGRO_KEY_ALT) && (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL))) {
+			else if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_T && (tgui::isKeyDown(ALLEGRO_KEY_ALT) || tgui::isKeyDown(ALLEGRO_KEY_ALTGR))) {
 				int layer = levelEditor->getCurrentLayer();
 				draw_groups[layer] = !draw_groups[layer];
 			}
-			else if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_T && tgui::isKeyDown(ALLEGRO_KEY_ALT)) {
+			else if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_T && (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL))) {
 				int layer = levelEditor->getCurrentLayer();
 				draw_solids[layer] = !draw_solids[layer];
 			}
@@ -987,12 +1000,30 @@ int main(int argc, char **argv)
 					reloadTiles();
 				}
 #ifdef SUPPORT_GROUPS
-				else if (event.user.data1 == GROUP_OBJECT_ID || event.user.data1 == GROUP_SHADOW_ID) {
+				else if (
+						event.user.data1 == GROUP_OBJECT_ID ||
+						event.user.data1 == GROUP_SHADOW_ID ||
+						event.user.data1 == GROUP_CHAIR_ANY_ID ||
+						event.user.data1 == GROUP_CHAIR_NORTH_ID ||
+						event.user.data1 == GROUP_CHAIR_EAST_ID ||
+						event.user.data1 == GROUP_CHAIR_SOUTH_ID ||
+						event.user.data1 == GROUP_CHAIR_WEST_ID
+					) {
 					bool object_checked = al_get_menu_item_flags(menu, GROUP_OBJECT_ID) & ALLEGRO_MENU_ITEM_CHECKED;
 					bool shadow_checked = al_get_menu_item_flags(menu, GROUP_SHADOW_ID) & ALLEGRO_MENU_ITEM_CHECKED;
+					bool chair_any_checked = al_get_menu_item_flags(menu, GROUP_CHAIR_ANY_ID) & ALLEGRO_MENU_ITEM_CHECKED;
+					bool chair_north_checked = al_get_menu_item_flags(menu, GROUP_CHAIR_NORTH_ID) & ALLEGRO_MENU_ITEM_CHECKED;
+					bool chair_east_checked = al_get_menu_item_flags(menu, GROUP_CHAIR_EAST_ID) & ALLEGRO_MENU_ITEM_CHECKED;
+					bool chair_south_checked = al_get_menu_item_flags(menu, GROUP_CHAIR_SOUTH_ID) & ALLEGRO_MENU_ITEM_CHECKED;
+					bool chair_west_checked = al_get_menu_item_flags(menu, GROUP_CHAIR_WEST_ID) & ALLEGRO_MENU_ITEM_CHECKED;
 					int group_type = 0;
 					if (object_checked) group_type |= 1;
-					if (shadow_checked) group_type |= 2;
+					if (shadow_checked) group_type |= (1 << 1);
+					if (chair_any_checked) group_type |= (1 << 2);
+					if (chair_north_checked) group_type |= (1 << 3);
+					if (chair_east_checked) group_type |= (1 << 4);
+					if (chair_south_checked) group_type |= (1 << 5);
+					if (chair_west_checked) group_type |= (1 << 6);
 					levelEditor->set_group_type(group_type);
 				}
 #endif
