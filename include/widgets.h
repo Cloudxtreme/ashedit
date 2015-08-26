@@ -21,6 +21,7 @@ extern ALLEGRO_EVENT_QUEUE *queue;
 extern std::vector<ALLEGRO_BITMAP *> tileSheets;
 extern std::vector<bool> draw_solids;
 extern std::vector<bool> draw_groups;
+extern ALLEGRO_MOUSE_CURSOR *mouse_cursor;
 
 void setTitle();
 
@@ -420,7 +421,7 @@ public:
 			}
 			else {
 				if (cursor_type != ALLEGRO_SYSTEM_MOUSE_CURSOR_DEFAULT) {
-					al_set_system_mouse_cursor(al_get_current_display(), ALLEGRO_SYSTEM_MOUSE_CURSOR_DEFAULT);
+					al_set_mouse_cursor(display, mouse_cursor);
 					cursor_type = ALLEGRO_SYSTEM_MOUSE_CURSOR_DEFAULT;
 				}
 			}

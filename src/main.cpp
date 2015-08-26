@@ -122,6 +122,7 @@ A_Splitter *quickRefSplitter;
 A_Splitter *quickRefBottomSplitter;
 A_Label *quickRefContent1, *quickRefContent2;
 A_Titlebar *quickRefTitlebar;
+ALLEGRO_MOUSE_CURSOR *mouse_cursor;
 
 void setTitle()
 {
@@ -661,7 +662,7 @@ int main(int argc, char **argv)
 
 	f = al_open_memfile(mouse_cursor_png, sizeof(mouse_cursor_png), "rb");
 	ALLEGRO_BITMAP *mouse_cursor_bmp = al_load_bitmap_f(f, ".png");
-	ALLEGRO_MOUSE_CURSOR *mouse_cursor = al_create_mouse_cursor(mouse_cursor_bmp, 0, 0);
+	mouse_cursor = al_create_mouse_cursor(mouse_cursor_bmp, 0, 0);
 	al_set_mouse_cursor(display, mouse_cursor);
 	al_destroy_bitmap(mouse_cursor_bmp);
 	al_fclose(f);
