@@ -38,7 +38,6 @@ enum {
 	GROUP_TYPE_ID,
 	GROUP_OBJECT_ID,
 	GROUP_SHADOW_ID,
-	GROUP_CHAIR_ANY_ID,
 	GROUP_CHAIR_NORTH_ID,
 	GROUP_CHAIR_EAST_ID,
 	GROUP_CHAIR_SOUTH_ID,
@@ -81,7 +80,6 @@ ALLEGRO_MENU_INFO main_menu_info[] = {
 	ALLEGRO_START_OF_MENU("Group Type", GROUP_TYPE_ID),
 		{ "&Object", GROUP_OBJECT_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 		{ "&Shadow", GROUP_SHADOW_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-		{ "Chair (Any)", GROUP_CHAIR_ANY_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 		{ "Chair (North)", GROUP_CHAIR_NORTH_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 		{ "Chair (East)", GROUP_CHAIR_EAST_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 		{ "Chair (South)", GROUP_CHAIR_SOUTH_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
@@ -1004,7 +1002,6 @@ int main(int argc, char **argv)
 				else if (
 						event.user.data1 == GROUP_OBJECT_ID ||
 						event.user.data1 == GROUP_SHADOW_ID ||
-						event.user.data1 == GROUP_CHAIR_ANY_ID ||
 						event.user.data1 == GROUP_CHAIR_NORTH_ID ||
 						event.user.data1 == GROUP_CHAIR_EAST_ID ||
 						event.user.data1 == GROUP_CHAIR_SOUTH_ID ||
@@ -1012,7 +1009,6 @@ int main(int argc, char **argv)
 					) {
 					bool object_checked = al_get_menu_item_flags(menu, GROUP_OBJECT_ID) & ALLEGRO_MENU_ITEM_CHECKED;
 					bool shadow_checked = al_get_menu_item_flags(menu, GROUP_SHADOW_ID) & ALLEGRO_MENU_ITEM_CHECKED;
-					bool chair_any_checked = al_get_menu_item_flags(menu, GROUP_CHAIR_ANY_ID) & ALLEGRO_MENU_ITEM_CHECKED;
 					bool chair_north_checked = al_get_menu_item_flags(menu, GROUP_CHAIR_NORTH_ID) & ALLEGRO_MENU_ITEM_CHECKED;
 					bool chair_east_checked = al_get_menu_item_flags(menu, GROUP_CHAIR_EAST_ID) & ALLEGRO_MENU_ITEM_CHECKED;
 					bool chair_south_checked = al_get_menu_item_flags(menu, GROUP_CHAIR_SOUTH_ID) & ALLEGRO_MENU_ITEM_CHECKED;
@@ -1020,11 +1016,10 @@ int main(int argc, char **argv)
 					int group_type = 0;
 					if (object_checked) group_type |= 1;
 					if (shadow_checked) group_type |= (1 << 1);
-					if (chair_any_checked) group_type |= (1 << 2);
-					if (chair_north_checked) group_type |= (1 << 3);
-					if (chair_east_checked) group_type |= (1 << 4);
-					if (chair_south_checked) group_type |= (1 << 5);
-					if (chair_west_checked) group_type |= (1 << 6);
+					if (chair_north_checked) group_type |= (1 << 2);
+					if (chair_east_checked) group_type |= (1 << 3);
+					if (chair_south_checked) group_type |= (1 << 4);
+					if (chair_west_checked) group_type |= (1 << 5);
 					levelEditor->set_group_type(group_type);
 				}
 #endif
