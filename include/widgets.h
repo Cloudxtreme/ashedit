@@ -1899,6 +1899,8 @@ public:
 					}
 					for (int l = layer_start; l < layer_end; l++) {
 						tiles[yy+marquee_float_y][xx+marquee_float_x][l].number = marquee_buffer[yy][xx][marquee_layer == -1 ? l : 0].number;
+						tiles[yy+marquee_float_y][xx+marquee_float_x][l].x = marquee_buffer[yy][xx][marquee_layer == -1 ? l : 0].x;
+						tiles[yy+marquee_float_y][xx+marquee_float_x][l].y = marquee_buffer[yy][xx][marquee_layer == -1 ? l : 0].y;
 						tiles[yy+marquee_float_y][xx+marquee_float_x][l].sheet = marquee_buffer[yy][xx][marquee_layer == -1 ? l : 0].sheet;
 						tiles[yy+marquee_float_y][xx+marquee_float_x][l].solid = marquee_buffer[yy][xx][marquee_layer == -1 ? l : 0].solid;
 						changed = true;
