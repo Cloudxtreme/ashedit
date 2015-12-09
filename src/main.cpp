@@ -37,11 +37,14 @@ enum {
 	SCALE_10_ID,
 	GROUP_TYPE_ID,
 	GROUP_OBJECT_ID,
-	GROUP_SHADOW_ID,
 	GROUP_CHAIR_NORTH_ID,
 	GROUP_CHAIR_EAST_ID,
 	GROUP_CHAIR_SOUTH_ID,
 	GROUP_CHAIR_WEST_ID,
+	GROUP_BED_NORTH_ID,
+	GROUP_BED_EAST_ID,
+	GROUP_BED_SOUTH_ID,
+	GROUP_BED_WEST_ID,
 	HELP_ID,
 	HELP_QUICK_REFERENCE_ID
 };
@@ -79,11 +82,14 @@ ALLEGRO_MENU_INFO main_menu_info[] = {
 #ifdef SUPPORT_GROUPS
 	ALLEGRO_START_OF_MENU("Group Type", GROUP_TYPE_ID),
 		{ "&Object", GROUP_OBJECT_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
-		{ "&Shadow", GROUP_SHADOW_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 		{ "Chair (North)", GROUP_CHAIR_NORTH_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 		{ "Chair (East)", GROUP_CHAIR_EAST_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 		{ "Chair (South)", GROUP_CHAIR_SOUTH_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 		{ "Chair (West)", GROUP_CHAIR_WEST_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+		{ "Bed (North)", GROUP_BED_NORTH_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+		{ "Bed (East)", GROUP_BED_EAST_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+		{ "Bed (South)", GROUP_BED_SOUTH_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
+		{ "Bed (West)", GROUP_BED_WEST_ID, ALLEGRO_MENU_ITEM_CHECKBOX, NULL },
 		ALLEGRO_END_OF_MENU,
 #endif
 
@@ -1001,25 +1007,34 @@ int main(int argc, char **argv)
 #ifdef SUPPORT_GROUPS
 				else if (
 						event.user.data1 == GROUP_OBJECT_ID ||
-						event.user.data1 == GROUP_SHADOW_ID ||
 						event.user.data1 == GROUP_CHAIR_NORTH_ID ||
 						event.user.data1 == GROUP_CHAIR_EAST_ID ||
 						event.user.data1 == GROUP_CHAIR_SOUTH_ID ||
-						event.user.data1 == GROUP_CHAIR_WEST_ID
+						event.user.data1 == GROUP_CHAIR_WEST_ID ||
+						event.user.data1 == GROUP_BED_NORTH_ID ||
+						event.user.data1 == GROUP_BED_EAST_ID ||
+						event.user.data1 == GROUP_BED_SOUTH_ID ||
+						event.user.data1 == GROUP_BED_WEST_ID
 					) {
 					bool object_checked = al_get_menu_item_flags(menu, GROUP_OBJECT_ID) & ALLEGRO_MENU_ITEM_CHECKED;
-					bool shadow_checked = al_get_menu_item_flags(menu, GROUP_SHADOW_ID) & ALLEGRO_MENU_ITEM_CHECKED;
 					bool chair_north_checked = al_get_menu_item_flags(menu, GROUP_CHAIR_NORTH_ID) & ALLEGRO_MENU_ITEM_CHECKED;
 					bool chair_east_checked = al_get_menu_item_flags(menu, GROUP_CHAIR_EAST_ID) & ALLEGRO_MENU_ITEM_CHECKED;
 					bool chair_south_checked = al_get_menu_item_flags(menu, GROUP_CHAIR_SOUTH_ID) & ALLEGRO_MENU_ITEM_CHECKED;
 					bool chair_west_checked = al_get_menu_item_flags(menu, GROUP_CHAIR_WEST_ID) & ALLEGRO_MENU_ITEM_CHECKED;
+					bool bed_north_checked = al_get_menu_item_flags(menu, GROUP_BED_NORTH_ID) & ALLEGRO_MENU_ITEM_CHECKED;
+					bool bed_east_checked = al_get_menu_item_flags(menu, GROUP_BED_EAST_ID) & ALLEGRO_MENU_ITEM_CHECKED;
+					bool bed_south_checked = al_get_menu_item_flags(menu, GROUP_BED_SOUTH_ID) & ALLEGRO_MENU_ITEM_CHECKED;
+					bool bed_west_checked = al_get_menu_item_flags(menu, GROUP_BED_WEST_ID) & ALLEGRO_MENU_ITEM_CHECKED;
 					int group_type = 0;
 					if (object_checked) group_type |= 1;
-					if (shadow_checked) group_type |= (1 << 1);
-					if (chair_north_checked) group_type |= (1 << 2);
-					if (chair_east_checked) group_type |= (1 << 3);
-					if (chair_south_checked) group_type |= (1 << 4);
-					if (chair_west_checked) group_type |= (1 << 5);
+					if (chair_north_checked) group_type |= (1 << 1);
+					if (chair_east_checked) group_type |= (1 << 2);
+					if (chair_south_checked) group_type |= (1 << 3);
+					if (chair_west_checked) group_type |= (1 << 4);
+					if (bed_north_checked) group_type |= (1 << 5);
+					if (bed_east_checked) group_type |= (1 << 6);
+					if (bed_south_checked) group_type |= (1 << 7);
+					if (bed_west_checked) group_type |= (1 << 8);
 					levelEditor->set_group_type(group_type);
 				}
 #endif
