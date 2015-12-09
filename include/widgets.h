@@ -2657,7 +2657,7 @@ public:
 		int num_groups = al_fread16le(f);
 
 		for (int i = 0; i < num_groups; i++) {
-			int t = al_fgetc(f);
+			int t = al_fread32le(f);
 			int l = al_fgetc(f);
 			int x = al_fread16le(f);
 			int y = al_fread16le(f);
@@ -2791,7 +2791,7 @@ public:
 
 		for (size_t i = 0; i < groups.size(); i++) {
 			Group &g = groups[i];
-			al_fputc(f, g.type);
+			al_fwrite32le(f, g.type);
 			al_fputc(f, g.layer);
 			al_fwrite16le(f, g.x);
 			al_fwrite16le(f, g.y);
