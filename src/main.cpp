@@ -660,7 +660,9 @@ int main(int argc, char **argv)
 
 	ALLEGRO_FILE *f = al_open_memfile(icon_png, sizeof(icon_png), "rb");
 	ALLEGRO_BITMAP *icon_bmp = al_load_bitmap_f(f, ".png");
+#ifndef __APPLE__
 	al_set_display_icon(display, icon_bmp);
+#endif
 	al_destroy_bitmap(icon_bmp);
 	al_fclose(f);
 
