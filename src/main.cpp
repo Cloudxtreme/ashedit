@@ -114,6 +114,7 @@ static A_Scrollpane *tileScrollpane;
 
 std::vector<bool> draw_solids;
 std::vector<bool> draw_groups;
+bool draw_walls;
 
 static int mouse_x = 0, mouse_y = 0;
 
@@ -355,6 +356,47 @@ static void levelDrawCallback(int ox, int oy, int dx, int dy, int w, int h, int 
 				colour = al_map_rgb(255, 255, 0);
 			}
 			al_draw_rectangle(savedx + (g.x * General::tileSize * General::scale) - ox, savedy + (g.y * General::tileSize * General::scale) - oy, savedx + ((g.x + g.w) * General::tileSize * General::scale) - ox, savedy + ((g.y + g.h) * General::tileSize * General::scale) - oy, colour, 1.0f);
+		}
+	}
+
+	if (draw_walls) {
+		std::vector<A_Leveleditor::Wall> &walls = levelEditor->getWalls();
+
+		for (size_t i = 0; i < walls.size(); i++) {
+			A_Leveleditor::Wall &w = walls[i];
+			ALLEGRO_COLOR white = al_map_rgb(255, 255, 255);
+			al_draw_rectangle(
+				savedx + (w.x * General::tileSize * General::scale) - ox,
+				savedy + ((w.y - w.z) * General::tileSize * General::scale) - oy,
+				savedx + ((w.x + w.size_x) * General::tileSize * General::scale) - ox,
+				savedy + ((w.y - w.z + w.size_y) * General::tileSize * General::scale) - oy,
+				white,
+				1.0f
+			);
+			al_draw_rectangle(
+				savedx + (w.x * General::tileSize * General::scale) - ox,
+				savedy + ((w.y - w.z - w.size_z) * General::tileSize * General::scale) - oy,
+				savedx + ((w.x + w.size_x) * General::tileSize * General::scale) - ox,
+				savedy + ((w.y - w.z + w.size_y - w.size_z) * General::tileSize * General::scale) - oy,
+				white,
+				1.0f
+			);
+			al_draw_line(
+				savedx + (w.x * General::tileSize * General::scale) - ox,
+				savedy + ((w.y - w.z + w.size_y) * General::tileSize * General::scale) - oy,
+				savedx + (w.x * General::tileSize * General::scale) - ox,
+				savedy + ((w.y - w.z - w.size_z) * General::tileSize * General::scale) - oy,
+				white,
+				1.0f
+			);
+			al_draw_line(
+				savedx + ((w.x + w.size_x) * General::tileSize * General::scale) - ox,
+				savedy + ((w.y - w.z + w.size_y) * General::tileSize * General::scale) - oy,
+				savedx + ((w.x + w.size_x) * General::tileSize * General::scale) - ox,
+				savedy + ((w.y - w.z - w.size_z) * General::tileSize * General::scale) - oy,
+				white,
+				1.0f
+			);
 		}
 	}
 
@@ -746,6 +788,8 @@ int main(int argc, char **argv)
 		draw_groups.push_back(true);
 	}
 
+	draw_walls = true;
+
 	tgui::setNewWidgetParent(0);
 	tgui::addWidget(mainSplitBottom);
 	mainSplitBottom->addToSecondPane(statusLabel);
@@ -835,6 +879,9 @@ int main(int argc, char **argv)
 				//for(j = 0; j < tileSheets.size(); j++) {
 				//	al_unlock_bitmap(tileSheets[j]);
 				//}
+			}
+			else if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_T && (tgui::isKeyDown(ALLEGRO_KEY_LSHIFT) || tgui::isKeyDown(ALLEGRO_KEY_RSHIFT))) {
+				draw_walls = !draw_walls;
 			}
 			else if (event.type == ALLEGRO_EVENT_KEY_DOWN && event.keyboard.keycode == ALLEGRO_KEY_T && (tgui::isKeyDown(ALLEGRO_KEY_ALT) || tgui::isKeyDown(ALLEGRO_KEY_ALTGR))) {
 				int layer = levelEditor->getCurrentLayer();

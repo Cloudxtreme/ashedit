@@ -196,7 +196,7 @@ public:
 
 	virtual void raise(void) {
 		TGUIWidget::raise();
-	
+
 		if (first_pane) {
 			first_pane->raise();
 		}
@@ -450,7 +450,7 @@ public:
 			last_slider_pos = (split_type == SPLIT_HORIZONTAL) ? abs_y : abs_x;
 		}
 	}
-	
+
 	void _mouseUp(int rel_x, int rel_y, int abs_x, int abs_y, int mb) {
 		if (down_on_slider) {
 			down_on_slider = false;
@@ -634,7 +634,7 @@ protected:
 	bool second_fixed;
 	float ratio;
 };
-	
+
 class A_Image : public tgui::TGUIWidget {
 public:
 	virtual void draw(int abs_x, int abs_y) {
@@ -710,7 +710,7 @@ public:
 			abs_y+height,
 			color
 		);
-		
+
 		al_draw_line(
 			abs_x+0.5,
 			abs_y+0.5,
@@ -950,7 +950,7 @@ public:
 		}
 		return show;
 	}
-	
+
 	int getIndex(int abs_x, int abs_y) {
 		int widget_x, widget_y;
 		tgui::determineAbsolutePosition(this, &widget_x, &widget_y);
@@ -963,7 +963,7 @@ public:
 			return -4;
 
 		int index_tmp = rel_y / HEIGHT;
-		
+
 		if (index_tmp == 0)
 			return -1;
 		else if (index_tmp == show+1)
@@ -1006,7 +1006,7 @@ public:
 			return;
 
 		// was opened
-	
+
 		int index = getIndex(abs_x, abs_y);
 
 		if (index == -1) {
@@ -1063,7 +1063,7 @@ public:
 		if (opened) {
 			int show = getShow();
 			int y;
-	
+
 			y = abs_y;
 			al_draw_filled_rectangle(
 				abs_x,
@@ -1264,7 +1264,7 @@ public:
 			len = widgetSize-1;
 		return len;
 	}
-	
+
 	int getTotalLength(int widgetSize, int barSize) {
 		return widgetSize-barSize-THICKNESS-1;
 	}
@@ -1301,7 +1301,7 @@ public:
 			xx, yy, xx2, yy2,
 			troughColor
 		);
-		
+
 		barSize = getBarLength(width-THICKNESS, size_x);
 		totalLength = getTotalLength(width, barSize);
 		bpos = p2 * totalLength;
@@ -1332,7 +1332,7 @@ public:
 		if (!test) {
 			return;
 		}
-		
+
 		w->setParent(this);
 		child = w;
 	}
@@ -1585,7 +1585,7 @@ public:
 				*w = selected_w;\
 		}
 
-		if (selected_h < 0) {	
+		if (selected_h < 0) {
 			if (y)
 				*y = selected_y + selected_h + 1;
 			if (h)
@@ -1636,6 +1636,9 @@ public:
 	static const int TOOL_FILL = 6;
 	static const int TOOL_RAISER = 7;
 	static const int TOOL_MARQUEE = 8;
+#ifdef MO3
+	static const int TOOL_WALL = 9;
+#endif
 
 	struct _TilePlusPlus {
 		int x, y, layer, number, sheet;
@@ -1654,6 +1657,11 @@ public:
 		int type, layer, x, y, w, h;
 	};
 
+	struct Wall {
+		int x, y, z;
+		int size_x, size_y, size_z;
+	};
+
 	bool getRecording(void) {
 		return recording;
 	}
@@ -1668,6 +1676,10 @@ public:
 
 	std::vector<Group> &getGroups() {
 		return groups;
+	}
+
+	std::vector<Wall> &getWalls() {
+		return walls;
 	}
 
 	_Tile createEmpty_Tile(void) {
@@ -1688,7 +1700,7 @@ public:
 		}
 		return tile;
 	}
-	
+
 	std::vector< std::vector<_Tile> > createRow(int w) {
 		std::vector< std::vector<_Tile> > row;
 		std::vector<_Tile> tile = createEmptyTile();
@@ -1805,6 +1817,16 @@ public:
 			}
 		}
 
+		for (size_t j = 0; j < walls.size(); j++) {
+			Wall &w = walls[j];
+			if (w.y > i) {
+				w.y--;
+			}
+			else if (i >= w.y && i < w.y+w.size_y) {
+				w.size_y--;
+			}
+		}
+
 		changed = true;
 	}
 
@@ -1823,6 +1845,16 @@ public:
 			}
 			else if (i >= g.x && i < g.x+g.w) {
 				g.w--;
+			}
+		}
+
+		for (size_t j = 0; j < walls.size(); j++) {
+			Wall &w = walls[j];
+			if (w.x > i) {
+				w.x--;
+			}
+			else if (i >= w.x && i < w.x+w.size_x) {
+				w.size_x--;
 			}
 		}
 
@@ -1850,6 +1882,16 @@ public:
 			}
 		}
 
+		for (size_t j = 0; j < walls.size(); j++) {
+			Wall &w = walls[j];
+			if (w.y >= i) {
+				w.y++;
+			}
+			else if (i > w.y && i < w.y+w.size_y) {
+				w.size_y++;
+			}
+		}
+
 		changed = true;
 	}
 
@@ -1873,6 +1915,16 @@ public:
 			}
 			else if (i > g.x && i < g.x+g.w) {
 				g.w++;
+			}
+		}
+
+		for (size_t j = 0; j < walls.size(); j++) {
+			Wall &w = walls[j];
+			if (w.x >= i) {
+				w.x++;
+			}
+			else if (i > w.x && i < w.x+w.size_x) {
+				w.size_x++;
 			}
 		}
 
@@ -2127,6 +2179,108 @@ public:
 				changed = true;
 			}
 		}
+#ifdef MO3
+		else if (keycode == ALLEGRO_KEY_W) {
+			int found = -1;
+
+			for (size_t i = 0; i < walls.size(); i++) {
+				if (walls[i].x == statusX && walls[i].y == statusY) {
+					found = i;
+					break;
+				}
+			}
+
+			if (found >= 0) {
+				if (selected_wall == found) {
+					walls.erase(walls.begin() + selected_wall);
+					selected_wall = -1;
+				}
+				else {
+					selected_wall = found;
+				}
+			}
+			else {
+				Wall w;
+				w.x = statusX;
+				w.y = statusY;
+				w.z = 0;
+				w.size_x = 1;
+				w.size_y = 1;
+				w.size_z = 1;
+				walls.push_back(w);
+				selected_wall = walls.size() - 1;
+			}
+
+			tool = TOOL_WALL;
+		}
+		else if (tool == TOOL_WALL && keycode == ALLEGRO_KEY_LEFT) {
+			if (walls.size() > selected_wall) {
+				if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
+					if (walls[selected_wall].size_x > 1) {
+						walls[selected_wall].size_x--;
+					}
+				}
+				else {
+					walls[selected_wall].x--;
+				}
+			}
+		}
+		else if (tool == TOOL_WALL && keycode == ALLEGRO_KEY_RIGHT) {
+			if (walls.size() > selected_wall) {
+				if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
+					walls[selected_wall].size_x++;
+				}
+				else {
+					walls[selected_wall].x++;
+				}
+			}
+		}
+		else if (tool == TOOL_WALL && keycode == ALLEGRO_KEY_UP) {
+			if (walls.size() > selected_wall) {
+				if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
+					if (walls[selected_wall].size_y > 1) {
+						walls[selected_wall].size_y--;
+					}
+				}
+				else {
+					walls[selected_wall].y--;
+				}
+			}
+		}
+		else if (tool == TOOL_WALL && keycode == ALLEGRO_KEY_DOWN) {
+			if (walls.size() > selected_wall) {
+				if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
+					walls[selected_wall].size_y++;
+				}
+				else {
+					walls[selected_wall].y++;
+				}
+			}
+		}
+		else if (tool == TOOL_WALL && keycode == ALLEGRO_KEY_PGUP) {
+			if (walls.size() > selected_wall) {
+				if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
+					walls[selected_wall].size_z++;
+				}
+				else {
+					walls[selected_wall].z++;
+				}
+			}
+		}
+		else if (tool == TOOL_WALL && keycode == ALLEGRO_KEY_PGDN) {
+			if (walls.size() > selected_wall) {
+				if (tgui::isKeyDown(ALLEGRO_KEY_LCTRL) || tgui::isKeyDown(ALLEGRO_KEY_RCTRL)) {
+					if (walls[selected_wall].size_z > 1) {
+						walls[selected_wall].size_z--;
+					}
+				}
+				else {
+					walls[selected_wall].z--;
+				}
+			}
+		}
+#endif
+
 		if (using_mover && tool != TOOL_MOVER) {
 			already_moved.clear();
 		}
@@ -2188,11 +2342,15 @@ public:
 		std::vector< std::vector<Group> >::iterator it2 = group_undoes.end() - 1;
 		groups = *it2;
 		group_undoes.erase(it2);
+
+		std::vector< std::vector<Wall> >::iterator it3 = wall_undoes.end() - 1;
+		walls = *it3;
+		wall_undoes.erase(it3);
 	}
-	
+
 	void doRedo(void) {
 		if (redoes.size() <= 0) return;
-		
+
 		push_undo();
 
 		tiles = redoes[redoes.size()-1];
@@ -2200,8 +2358,11 @@ public:
 
 		groups = group_redoes[group_redoes.size()-1];
 		group_redoes.erase(group_redoes.end()-1);
+
+		walls = wall_redoes[wall_redoes.size()-1];
+		wall_redoes.erase(wall_redoes.end()-1);
 	}
-	
+
 	void use_tool(int t, int x, int y, int l, int number, int sheet) {
 		bool fill_all = false;
 		std::pair<int, int> pr(x, y);
@@ -2253,7 +2414,7 @@ public:
 					std::stack<Point> stack;
 					int tile_num = tiles[y][x][l].number;
 					int tile_sheet = tiles[y][x][l].sheet;
-		
+
 					p.x = x;
 					p.y = y;
 					stack.push(p);
@@ -2448,6 +2609,11 @@ public:
 		if (group_undoes.size() >= MAX_UNDO) {
 			group_undoes.erase(group_undoes.begin());
 		}
+
+		wall_undoes.push_back(walls);
+		if (wall_undoes.size() >= MAX_UNDO) {
+			wall_undoes.erase(wall_undoes.begin());
+		}
 	}
 
 	void push_redo(void) {
@@ -2459,6 +2625,11 @@ public:
 		group_redoes.push_back(groups);
 		if (group_redoes.size() >= MAX_UNDO) {
 			group_redoes.erase(group_redoes.begin());
+		}
+
+		wall_redoes.push_back(walls);
+		if (wall_redoes.size() >= MAX_UNDO) {
+			wall_redoes.erase(wall_redoes.begin());
 		}
 	}
 
@@ -2535,6 +2706,7 @@ public:
 		redoes.clear();
 
 		group_redoes.clear();
+		wall_redoes.clear();
 
 		cloneStartX = -1;
 	}
@@ -2582,6 +2754,7 @@ public:
 
 	void load(std::string filename) {
 		groups.clear();
+		walls.clear();
 
 		const char *cFilename = filename.c_str();
 
@@ -2629,7 +2802,7 @@ public:
 		size(w, h);
 
 		resizeScrollpane();
-		
+
 		// for each layer
 		for (int l = 0; l < layers; l++) {
 			// read each tile: tile number and sheet
@@ -2666,6 +2839,19 @@ public:
 			Group g = { t, l, x, y, w, h };
 			groups.push_back(g);
 		}
+
+		int num_walls = al_fread16le(f);
+
+		for (int i = 0; i < num_walls; i++) {
+			int x = al_fread16le(f);
+			int y = al_fread16le(f);
+			int z = al_fread16le(f);
+			int sx = al_fread16le(f);
+			int sy = al_fread16le(f);
+			int sz = al_fread16le(f);
+			Wall w = { x, y, z, sx, sy, sz };
+			walls.push_back(w);
+		}
 #else // Crystal Picnic format
 		int w = al_fread32le(f);
 		int h = al_fread32le(f);
@@ -2675,7 +2861,7 @@ public:
 		size(w, h);
 
 		resizeScrollpane();
-		
+
 		// for each layer
 		for (int l = 0; l < layers; l++) {
 			// read each tile: tile number and sheet
@@ -2697,6 +2883,9 @@ public:
 
 		group_undoes.clear();
 		group_redoes.clear();
+
+		wall_undoes.clear();
+		wall_redoes.clear();
 	}
 
 	void setLastSaveName(std::string name)
@@ -2709,7 +2898,7 @@ public:
 
 #ifdef MO2
 		ALLEGRO_FILE *f = al_fopen(filename.c_str(), "wb");
-		
+
 		al_fwrite32le(f, tiles[0].size()); // width
 		al_fwrite32le(f, tiles.size()); // height
 
@@ -2799,6 +2988,18 @@ public:
 			al_fwrite16le(f, g.h);
 		}
 
+		al_fwrite16le(f, walls.size());
+
+		for (size_t i = 0; i < walls.size(); i++) {
+			Wall &w = walls[i];
+			al_fwrite16le(f, w.x);
+			al_fwrite16le(f, w.y);
+			al_fwrite16le(f, w.z);
+			al_fwrite16le(f, w.size_x);
+			al_fwrite16le(f, w.size_y);
+			al_fwrite16le(f, w.size_z);
+		}
+
 		al_fclose(f);
 #else // Crystal Picnic format
 		const char *cFilename = filename.c_str();
@@ -2883,6 +3084,9 @@ public:
 
 		group_undoes.clear();
 		group_redoes.clear();
+
+		wall_undoes.clear();
+		wall_redoes.clear();
 	}
 
 	void record(void) {
@@ -2973,10 +3177,13 @@ public:
 	void new_level() {
 		tiles.clear();
 		groups.clear();
+		walls.clear();
 		undoes.clear();
 		redoes.clear();
 		group_undoes.clear();
 		group_redoes.clear();
+		wall_undoes.clear();
+		wall_redoes.clear();
 		size(General::areaSize, General::areaSize);
 		loadSavePath = al_create_path("");
 		changed = false;
@@ -3019,7 +3226,7 @@ protected:
 		p.y = y;
 		return p;
 	}
-	
+
 	void fill(int firstx, int firsty, int layer, int x, int y, int tile_num, int tile_sheet, std::stack<Point> &stack, bool check_all_layers) {
 		int sel_x, sel_y, sel_w, sel_h;
 		ts->getSelected(&sel_x, &sel_y, &sel_w, &sel_h);
@@ -3049,7 +3256,7 @@ protected:
 		}
 
 		std::vector<bool> spread(neighbors.size());
-	
+
 		if (check_all_layers) {
 			for (int i = 0; i < (int)neighbors.size(); i++) {
 				Point p = neighbors[i];
@@ -3099,7 +3306,7 @@ protected:
 				stack.push(p);
 			}
 		}
-		
+
 		_Tile &t = tiles[y][x][layer];
 		t.number = new_tile;
 		t.x = new_tile % tw;
@@ -3121,6 +3328,8 @@ protected:
 	std::vector<Lvl> redoes;
 	std::vector< std::vector<Group> > group_undoes;
 	std::vector< std::vector<Group> > group_redoes;
+	std::vector< std::vector<Wall> > wall_undoes;
+	std::vector< std::vector<Wall> > wall_redoes;
 	ALLEGRO_PATH *loadSavePath;
 	std::string lastSaveName;
 	std::string operatingFilename;
@@ -3157,6 +3366,9 @@ protected:
 
 	std::vector<Group> groups;
 	int group_type;
+
+	std::vector<Wall> walls;
+	int selected_wall;
 };
 
 class A_Label : public tgui::TGUIWidget {
